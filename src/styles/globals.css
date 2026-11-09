@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: #101216;
+    color: #F1F1EE;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.025em;
+  }
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #101216;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1C2027;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 138, 54, 0.7);
+}
+
+/* Glass Dark UI Surfaces (from glass-dark-ui skill) */
+.glass-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 100%);
+  background-color: rgba(28, 32, 39, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+.glass-nav {
+  background: linear-gradient(180deg, rgba(28, 32, 39, 0.8) 0%, rgba(22, 26, 32, 0.72) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+/* Frosted Name Pill with Progressive Backdrop Blur */
+.frosted-name-pill {
+  background: linear-gradient(
+    180deg,
+    rgba(36, 41, 50, 0.68) 0%,
+    rgba(22, 26, 32, 0.82) 100%
+  );
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow:
+    0 12px 28px -6px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Progressive Bottom Blur Overlay (from progressive-blur skill) */
+.progressive-bottom-blur {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.6) 50%, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.6) 50%, black 100%);
+}
+
+/* Soft Bottom Alpha Mask for Floating Bust */
+.bust-bottom-fade {
+  mask-image: linear-gradient(to bottom, black 78%, rgba(0, 0, 0, 0.35) 95%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 78%, rgba(0, 0, 0, 0.35) 95%, transparent 100%);
+}
+
+/* Subtle Ambient Glow Background */
+.ambient-hero-glow {
+  background: radial-gradient(
+    ellipse 55% 40% at 50% 15%,
+    rgba(240, 138, 54, 0.11) 0%,
+    rgba(240, 138, 54, 0.03) 45%,
+    transparent 80%
+  );
+}
+
+/* Subtle Dot Pattern for Placeholders */
+.pattern-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
