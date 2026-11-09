@@ -1,11 +1,11 @@
 import type { Member } from '../types';
 
 import jenktland3Bust from '../assets/members/jenktland3.png';
-import redpl4yerBust from '../assets/members/redpl4yer.png';
+import redpl4yersBust from '../assets/members/redpl4yers.png';
 import poncherBust from '../assets/members/poncher.png';
 import drp1nBust from '../assets/members/drp1n.png';
 import ohluck_Bust from '../assets/members/ohluck_.png';
-import supercece9Bust from '../assets/members/supercece9.png';
+import supercece_Bust from '../assets/members/supercece_.png';
 import lollo235_Bust from '../assets/members/lollo235_.png';
 import manolo006Bust from '../assets/members/manolo006.png';
 import capo_rg5Bust from '../assets/members/capo_rg5.png';
@@ -18,10 +18,10 @@ export const membersList: Member[] = [
     customImageUrl: jenktland3Bust,
   },
   {
-    id: 'redpl4yer',
-    name: 'redpl4yer',
+    id: 'redpl4yers',
+    name: 'REDpl4yers',
     roleGroup: 'owner',
-    customImageUrl: redpl4yerBust,
+    customImageUrl: redpl4yersBust,
   },
   {
     id: 'poncher',
@@ -42,10 +42,10 @@ export const membersList: Member[] = [
     customImageUrl: ohluck_Bust,
   },
   {
-    id: 'supercece9',
-    name: 'supercece9',
+    id: 'supercece_',
+    name: 'supercece_',
     roleGroup: 'owner',
-    customImageUrl: supercece9Bust,
+    customImageUrl: supercece_Bust,
   },
   {
     id: 'lollo235_',
