@@ -84,6 +84,11 @@ export const MemberCard: React.FC<MemberCardProps> = ({
             src={bustUrl}
             alt=""
             aria-hidden="true"
+            onError={(e) => {
+              if (member.customImageUrl && e.currentTarget.src !== member.customImageUrl) {
+                e.currentTarget.src = member.customImageUrl;
+              }
+            }}
             className="absolute inset-0 w-full h-full object-contain blur-2xl scale-110 opacity-45 group-hover:opacity-75 group-hover:scale-125 transition-all duration-300 pointer-events-none"
           />
 
@@ -91,6 +96,11 @@ export const MemberCard: React.FC<MemberCardProps> = ({
           <img
             src={bustUrl}
             alt={member.name}
+            onError={(e) => {
+              if (member.customImageUrl && e.currentTarget.src !== member.customImageUrl) {
+                e.currentTarget.src = member.customImageUrl;
+              }
+            }}
             className="relative z-10 w-[88%] h-[88%] object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out-Quart group-hover:-translate-y-1.5 group-hover:scale-[1.03] pointer-events-none"
             loading="lazy"
           />
@@ -135,6 +145,11 @@ export const MemberCard: React.FC<MemberCardProps> = ({
           src={bustUrl}
           alt=""
           aria-hidden="true"
+          onError={(e) => {
+            if (member.customImageUrl && e.currentTarget.src !== member.customImageUrl) {
+              e.currentTarget.src = member.customImageUrl;
+            }
+          }}
           className="absolute inset-0 w-full h-full object-contain blur-2xl scale-115 opacity-45 group-hover:opacity-75 transition-all duration-300 pointer-events-none"
         />
 
@@ -142,6 +157,11 @@ export const MemberCard: React.FC<MemberCardProps> = ({
         <img
           src={bustUrl}
           alt={member.name}
+          onError={(e) => {
+            if (member.customImageUrl && e.currentTarget.src !== member.customImageUrl) {
+              e.currentTarget.src = member.customImageUrl;
+            }
+          }}
           className="relative z-10 w-[86%] h-[86%] object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out-Quart group-hover:scale-105 pointer-events-none"
           loading="lazy"
         />

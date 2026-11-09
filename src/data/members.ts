@@ -10,6 +10,10 @@ import lollo235_Bust from '../assets/members/lollo235_.png';
 import manolo006Bust from '../assets/members/manolo006.png';
 import capo_rg5Bust from '../assets/members/capo_rg5.png';
 
+/**
+ * Per aggiungere un nuovo membro basta inserire { id, name, roleGroup }!
+ * La skin 3D viene generata dinamicamente tramite il link Visage partendo dal nickname.
+ */
 export const membersList: Member[] = [
   {
     id: 'jenktland3',
@@ -68,9 +72,9 @@ export const membersList: Member[] = [
 ];
 
 /**
- * Restituisce l'immagine bust 3D locale oppure genera dinamicamente l'URL Visage
- * in base al nickname Minecraft dell'account.
+ * Genera dinamicamente il link del busto 3D isometrico (512px) a partire dal nickname Minecraft.
+ * API: https://visage.surgeplay.com/bust/512/<NICKNAME>
  */
 export const getMemberBustUrl = (member: Member): string => {
-  return member.customImageUrl || `https://visage.surgeplay.com/bust/512/${member.name}`;
+  return `https://visage.surgeplay.com/bust/512/${encodeURIComponent(member.name)}`;
 };
