@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import {
   streamerCreators,
-  featuredVideos,
   extractYouTubeId,
   extractTikTokVideoId,
 } from '../../data/media';
@@ -28,12 +27,24 @@ interface LiveStreamStatus {
   viewers?: string;
 }
 
+interface ResolvedVideoItem {
+  id: string;
+  url: string;
+  platform: 'youtube' | 'tiktok';
+  youtubeId: string | null;
+  tiktokId: string | null;
+  title: string;
+  authorName: string;
+  thumbnailUrl: string;
+}
+
 export const MediaSection: React.FC = () => {
   const { t } = useLanguage();
   const [liveMap, setLiveMap] = useState<Record<string, LiveStreamStatus>>({});
   const [checking, setChecking] = useState<boolean>(true);
   const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<'twitch' | 'youtube'>('twitch');
+  const [videos, setVideos] = useState<ResolvedVideoItem[]>([]);
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   const parentHost =
@@ -41,6 +52,77 @@ export const MediaSection: React.FC = () => {
       ? window.location.hostname
       : 'localhost';
 
+  // 1. Carica automaticamente i link da videos.json e recupera titolo/autore/copertina via oEmbed
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadVideosFromJson() {
+      try {
+        const res = await fetch(`./videos.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const rawList: unknown = await res.json();
+        if (!Array.isArray(rawList)) return;
+
+        const urls = rawList
+          .map((item) => (typeof item === 'string' ? item.trim() : ''))
+          .filter((u) => u.startsWith('http'));
+
+        const resolved = await Promise.all(
+          urls.map(async (url, idx): Promise<ResolvedVideoItem> => {
+            const ytId = extractYouTubeId(url);
+            const tiktokId = extractTikTokVideoId(url);
+            const isTikTok = url.includes('tiktok.com') || Boolean(tiktokId);
+            const platform: 'youtube' | 'tiktok' = isTikTok ? 'tiktok' : 'youtube';
+
+            let title = `Video #${idx + 1}`;
+            let authorName = 'Fermium SMP';
+            let thumbnailUrl = ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : '';
+
+            try {
+              const oembedEndpoint =
+                platform === 'tiktok'
+                  ? `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`
+                  : `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+
+              const metaRes = await fetch(oembedEndpoint);
+              if (metaRes.ok) {
+                const meta = await metaRes.json();
+                if (meta.title) title = meta.title;
+                if (meta.author_name) authorName = meta.author_name;
+                if (meta.thumbnail_url && !thumbnailUrl) thumbnailUrl = meta.thumbnail_url;
+              }
+            } catch {
+              // Se oEmbed fallisce usa comunque thumbnail e player standard
+            }
+
+            return {
+              id: `video-${idx}-${ytId || tiktokId || idx}`,
+              url,
+              platform,
+              youtubeId: ytId,
+              tiktokId,
+              title,
+              authorName,
+              thumbnailUrl,
+            };
+          })
+        );
+
+        if (!cancelled) {
+          setVideos(resolved);
+        }
+      } catch {
+        // Ignora errori se videos.json è vuoto
+      }
+    }
+
+    loadVideosFromJson();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 2. Controlla automaticamente le live dei membri
   useEffect(() => {
     let cancelled = false;
 
@@ -50,7 +132,6 @@ export const MediaSection: React.FC = () => {
 
       await Promise.all(
         streamerCreators.map(async (creator) => {
-          // 1. Controllo se c'è un ID live YouTube impostato manualmente
           const ytLiveId = extractYouTubeId(creator.youtubeLiveVideoId);
           if (ytLiveId) {
             results[creator.memberId] = {
@@ -61,7 +142,6 @@ export const MediaSection: React.FC = () => {
             return;
           }
 
-          // 2. Controllo automatico Twitch tramite DecAPI (CORS abilitato, nessuna API key richiesta)
           if (creator.twitchChannel) {
             try {
               const res = await fetch(
@@ -95,7 +175,7 @@ export const MediaSection: React.FC = () => {
                   if (titleRes.ok) title = (await titleRes.text()).trim();
                   if (viewersRes.ok) viewers = (await viewersRes.text()).trim();
                 } catch {
-                  // Ignora eventuali errori sui metadati secondari
+                  // Ignora errori secondari
                 }
 
                 results[creator.memberId] = {
@@ -125,7 +205,6 @@ export const MediaSection: React.FC = () => {
       setLiveMap(results);
       setChecking(false);
 
-      // Se qualcuno è in live e non è ancora stato selezionato un canale, seleziona automaticamente il primo in live
       const firstLive = streamerCreators.find((c) => results[c.memberId]?.isLive);
       if (firstLive) {
         setSelectedCreatorId((prev) => prev || firstLive.memberId);
@@ -512,7 +591,7 @@ export const MediaSection: React.FC = () => {
           </div>
         </div>
 
-        {/* BOTTOM PART: MANUAL CURATED VIDEOS */}
+        {/* BOTTOM PART: VIDEOS LOADED FROM videos.json */}
         <div>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 text-left">
             <div>
@@ -528,94 +607,97 @@ export const MediaSection: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {featuredVideos.map((video) => {
-              const ytId = extractYouTubeId(video.videoUrl);
-              const tiktokId = extractTikTokVideoId(video.videoUrl);
-              const isPlaying = playingVideoId === video.id;
+          {videos.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {videos.map((video) => {
+                const isPlaying = playingVideoId === video.id;
 
-              return (
-                <div
-                  key={video.id}
-                  className="group glass-panel rounded-2xl p-3 flex flex-col justify-between text-left transition-all duration-200 ease-out-Quart hover:-translate-y-1 hover:border-white/20"
-                >
-                  <div>
-                    <div className="aspect-[16/9] w-full rounded-xl overflow-hidden border border-white/[0.06] mb-3.5 relative bg-[#0D0F13]">
-                      {ytId ? (
-                        isPlaying ? (
-                          <iframe
-                            src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
-                            title={video.title || `Video #${video.slotNumber}`}
-                            className="w-full h-full border-0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                          />
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setPlayingVideoId(video.id)}
-                            className="w-full h-full relative block cursor-pointer group/play"
-                          >
-                            <img
-                              src={`https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`}
-                              alt={video.title || 'YouTube Video'}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover/play:scale-105"
-                              loading="lazy"
+                return (
+                  <div
+                    key={video.id}
+                    className="group glass-panel rounded-2xl p-3 flex flex-col justify-between text-left transition-all duration-200 ease-out-Quart hover:-translate-y-1 hover:border-white/20"
+                  >
+                    <div>
+                      <div className="aspect-[16/9] w-full rounded-xl overflow-hidden border border-white/[0.06] mb-3.5 relative bg-[#0D0F13]">
+                        {video.youtubeId ? (
+                          isPlaying ? (
+                            <iframe
+                              src={`https://www.youtube.com/embed/${video.youtubeId}?autoplay=1&rel=0`}
+                              title={video.title}
+                              className="w-full h-full border-0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
                             />
-                            <div className="absolute inset-0 bg-black/35 group-hover/play:bg-black/20 transition-colors flex items-center justify-center">
-                              <div className="w-12 h-12 rounded-2xl bg-accent-orange text-[#101216] flex items-center justify-center shadow-glow-orange transition-transform duration-200 group-hover/play:scale-110">
-                                <Play className="w-5 h-5 fill-current ml-0.5" />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setPlayingVideoId(video.id)}
+                              className="w-full h-full relative block cursor-pointer group/play"
+                            >
+                              <img
+                                src={video.thumbnailUrl}
+                                alt={video.title}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover/play:scale-105"
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 bg-black/35 group-hover/play:bg-black/20 transition-colors flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-2xl bg-accent-orange text-[#101216] flex items-center justify-center shadow-glow-orange transition-transform duration-200 group-hover/play:scale-110">
+                                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                                </div>
                               </div>
-                            </div>
-                          </button>
-                        )
-                      ) : tiktokId ? (
-                        <iframe
-                          src={`https://www.tiktok.com/embed/v2/${tiktokId}`}
-                          title={video.title || `TikTok #${video.slotNumber}`}
-                          className="w-full h-full border-0"
-                          allowFullScreen
-                        />
-                      ) : (
-                        <PlaceholderSurface
-                          title={`${t.media.videoSlotTitle} #${video.slotNumber}`}
-                          subtitle={t.media.videoSlotSub}
-                        />
-                      )}
-                    </div>
-
-                    <div className="px-1.5">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-[11px] font-mono uppercase tracking-wider text-accent-orange">
-                          {video.creatorName || 'Fermium SMP'}
-                        </span>
-                        {video.dateLabel && (
-                          <span className="text-[11px] font-mono text-text-muted">
-                            {video.dateLabel}
-                          </span>
-                        )}
+                            </button>
+                          )
+                        ) : video.tiktokId ? (
+                          isPlaying ? (
+                            <iframe
+                              src={`https://www.tiktok.com/embed/v2/${video.tiktokId}`}
+                              title={video.title}
+                              className="w-full h-full border-0"
+                              allowFullScreen
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setPlayingVideoId(video.id)}
+                              className="w-full h-full relative block cursor-pointer group/play"
+                            >
+                              {video.thumbnailUrl ? (
+                                <img
+                                  src={video.thumbnailUrl}
+                                  alt={video.title}
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover/play:scale-105"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-[#12151B]" />
+                              )}
+                              <div className="absolute inset-0 bg-black/35 group-hover/play:bg-black/20 transition-colors flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-2xl bg-accent-orange text-[#101216] flex items-center justify-center shadow-glow-orange transition-transform duration-200 group-hover/play:scale-110">
+                                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        ) : null}
                       </div>
 
-                      <h4 className="text-base font-heading font-semibold text-text-primary mb-1">
-                        {video.title || `${t.media.videoSlotTitle} #${video.slotNumber}`}
-                      </h4>
-
-                      {!video.videoUrl && (
-                        <p className="text-xs text-text-secondary leading-relaxed">
-                          {t.media.videoSlotSub}
-                        </p>
-                      )}
+                      <div className="px-1.5">
+                        <span className="text-[11px] font-mono uppercase tracking-wider text-accent-orange block mb-1">
+                          {video.authorName}
+                        </span>
+                        <h4 className="text-base font-heading font-semibold text-text-primary line-clamp-2">
+                          {video.title}
+                        </h4>
+                      </div>
                     </div>
-                  </div>
 
-                  {video.videoUrl && (
                     <div className="px-1.5 pt-3 mt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
                       <span className="inline-flex items-center gap-1.5 text-text-muted font-mono uppercase">
                         <Video className="w-3.5 h-3.5 text-accent-orange" />
                         <span>{video.platform}</span>
                       </span>
                       <a
-                        href={video.videoUrl}
+                        href={video.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 font-medium text-accent-orange hover:underline"
@@ -627,11 +709,38 @@ export const MediaSection: React.FC = () => {
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                  )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((slotNum) => (
+                <div
+                  key={slotNum}
+                  className="glass-panel rounded-2xl p-3 flex flex-col justify-between text-left"
+                >
+                  <div className="aspect-[16/9] w-full rounded-xl overflow-hidden border border-white/[0.06] mb-3.5 bg-[#0D0F13]">
+                    <PlaceholderSurface
+                      title={`${t.media.videoSlotTitle} #${slotNum}`}
+                      subtitle={t.media.videoSlotSub}
+                    />
+                  </div>
+                  <div className="px-1.5 pb-1">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-accent-orange block mb-1">
+                      videos.json
+                    </span>
+                    <h4 className="text-base font-heading font-semibold text-text-primary mb-1">
+                      {t.media.videoSlotTitle} #{slotNum}
+                    </h4>
+                    <p className="text-xs text-text-secondary leading-relaxed">
+                      {t.media.videoSlotSub}
+                    </p>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
