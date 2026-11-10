@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Type } from 'lucide-react';
 import type { Member, MemberRoleGroup } from '../../types';
-import { membersList as defaultMembers } from '../../data/members';
+import { membersList as defaultMembers, sortMembersByRole } from '../../data/members';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -33,7 +33,7 @@ export const MembersPreview: React.FC = () => {
                 : 'member',
           }));
         if (parsed.length > 0) {
-          setMembers(parsed);
+          setMembers(sortMembersByRole(parsed));
         }
       })
       .catch(() => {
