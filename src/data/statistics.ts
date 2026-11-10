@@ -7,7 +7,6 @@ export const WORLD_START_DATE = '2026-10-12T22:30:00+01:00';
  * calibrato in modo che il 12/11/2026 alle 22:30 segni esattamente 30 gg.
  */
 export function getWorldAgeDays(): number {
-  // Il 12/11/2026 alle 22:30 (ora italiana) corrisponde esattamente a 30 gg
   const anchor30DaysMs = new Date('2026-11-12T22:30:00+01:00').getTime();
   const dayMs = 1000 * 60 * 60 * 24;
   const startMs = anchor30DaysMs - 30 * dayMs;
@@ -23,13 +22,13 @@ export const serverStatistics: StatisticSlot[] = [
   },
   {
     id: 'projects',
-    value: '—',
-    isPlaceholder: true,
+    value: '5',
+    isPlaceholder: false,
   },
   {
     id: 'farms',
-    value: '—',
-    isPlaceholder: true,
+    value: '4',
+    isPlaceholder: false,
   },
   {
     id: 'worldAge',

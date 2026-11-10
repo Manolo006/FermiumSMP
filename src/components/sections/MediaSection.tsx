@@ -16,7 +16,6 @@ import {
 import type { StreamerCreator, MemberRoleGroup } from '../../types';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Badge } from '../ui/Badge';
-import { PlaceholderSurface } from '../ui/PlaceholderSurface';
 
 interface LiveStreamStatus {
   memberId: string;
@@ -713,34 +712,7 @@ export const MediaSection: React.FC = () => {
                 );
               })}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map((slotNum) => (
-                <div
-                  key={slotNum}
-                  className="glass-panel rounded-2xl p-3 flex flex-col justify-between text-left"
-                >
-                  <div className="aspect-[16/9] w-full rounded-xl overflow-hidden border border-white/[0.06] mb-3.5 bg-[#0D0F13]">
-                    <PlaceholderSurface
-                      title={`${t.media.videoSlotTitle} #${slotNum}`}
-                      subtitle={t.media.videoSlotSub}
-                    />
-                  </div>
-                  <div className="px-1.5 pb-1">
-                    <span className="text-[11px] font-mono uppercase tracking-wider text-accent-orange block mb-1">
-                      videos.json
-                    </span>
-                    <h4 className="text-base font-heading font-semibold text-text-primary mb-1">
-                      {t.media.videoSlotTitle} #{slotNum}
-                    </h4>
-                    <p className="text-xs text-text-secondary leading-relaxed">
-                      {t.media.videoSlotSub}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </section>

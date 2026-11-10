@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Maximize2, ArrowRight } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 import { gallerySlots } from '../../data/gallery';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
-import { PlaceholderSurface } from '../ui/PlaceholderSurface';
 import { Lightbox } from '../ui/Lightbox';
 
 export const GalleryPreview: React.FC = () => {
@@ -47,16 +44,11 @@ export const GalleryPreview: React.FC = () => {
               className={`group glass-panel rounded-2xl p-2 cursor-pointer transition-all duration-200 ease-out-Quart hover:-translate-y-1 hover:border-white/20 relative ${slot.aspectClass}`}
             >
               <div className="w-full h-full rounded-xl overflow-hidden border border-white/[0.06] relative">
-                {slot.imageUrl ? (
+                {slot.imageUrl && (
                   <img
                     src={slot.imageUrl}
                     alt={`${t.gallery.placeholderTitle} #${slot.slotNumber}`}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                ) : (
-                  <PlaceholderSurface
-                    title={`${t.gallery.placeholderTitle} #${slot.slotNumber}`}
-                    subtitle={t.gallery.placeholderCaption}
                   />
                 )}
 
@@ -66,15 +58,6 @@ export const GalleryPreview: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Bottom CTA */}
-        <div className="mt-12 text-center">
-          <Link to="/gallery">
-            <Button variant="secondary" size="md" icon={<ArrowRight className="w-4 h-4" />}>
-              {t.gallery.viewAll}
-            </Button>
-          </Link>
         </div>
       </div>
 

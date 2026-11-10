@@ -1,25 +1,19 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import type { ProjectCategoryKey } from '../../types';
 import { projectSlots } from '../../data/projects';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
-import { PlaceholderSurface } from '../ui/PlaceholderSurface';
 
 export const ProjectsPreview: React.FC = () => {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<ProjectCategoryKey>('all');
 
   const categories: ProjectCategoryKey[] = [
     'all',
-    'farms',
-    'redstone',
     'perimeters',
+    'redstone',
     'storage',
-    'infrastructure',
-    'megabuilds',
+    'farms',
   ];
 
   const filteredSlots =
@@ -69,67 +63,44 @@ export const ProjectsPreview: React.FC = () => {
 
         {/* Project Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSlots.map((slot) => (
-            <div
-              key={slot.id}
-              className="group glass-panel rounded-2xl p-3 flex flex-col justify-between text-left transition-all duration-200 ease-out-Quart hover:-translate-y-1 hover:border-white/20"
-            >
-              <div>
-                {/* Cover Image (Concentric Radius: outer rounded-2xl p-3 -> inner rounded-xl) */}
-                <div className="aspect-[16/10] w-full rounded-xl overflow-hidden border border-white/[0.06] mb-4 relative bg-[#12151B]">
-                  {slot.coverImage ? (
-                    <img
-                      src={slot.coverImage}
-                      alt={`${t.projects.placeholderCardTitle} #${slot.slotNumber}`}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <PlaceholderSurface
-                      title={`${t.projects.placeholderCardTitle} #${slot.slotNumber}`}
-                      subtitle={t.projects.placeholderImage}
-                    />
-                  )}
-                  <div className="absolute top-3 left-3">
-                    <Badge variant="neutral">
-                      {t.projects.categories[slot.category]}
-                    </Badge>
+          {filteredSlots.map((slot) => {
+            const title = lang === 'it' ? slot.titleIt : slot.titleEn;
+            const desc = lang === 'it' ? slot.descIt : slot.descEn;
+
+            return (
+              <div
+                key={slot.id}
+                className="group glass-panel rounded-2xl p-3 flex flex-col justify-between text-left transition-all duration-200 ease-out-Quart hover:-translate-y-1 hover:border-white/20"
+              >
+                <div>
+                  <div className="aspect-[16/10] w-full rounded-xl overflow-hidden border border-white/[0.06] mb-4 relative bg-[#12151B]">
+                    {slot.coverImage && (
+                      <img
+                        src={slot.coverImage}
+                        alt={title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="absolute top-3 left-3">
+                      <Badge variant="neutral">
+                        {t.projects.categories[slot.category]}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="px-2 pb-2">
+                    <h3 className="text-lg font-heading font-semibold text-text-primary group-hover:text-accent-orange transition-colors mb-1.5">
+                      {title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+                      {desc}
+                    </p>
                   </div>
                 </div>
-
-                {/* Card Copy */}
-                <div className="px-2">
-                  <h3 className="text-lg font-heading font-semibold text-text-primary group-hover:text-accent-orange transition-colors mb-1.5">
-                    {t.projects.placeholderCardTitle} #{slot.slotNumber}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-text-secondary leading-relaxed mb-4">
-                    {t.projects.placeholderCardDesc}
-                  </p>
-                </div>
               </div>
-
-              {/* Footer */}
-              <div className="px-2 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
-                <span className="text-text-muted">{t.projects.contributorsLabel} —</span>
-                <Link
-                  to={`/projects/${slot.id}`}
-                  className="inline-flex items-center gap-1 font-medium text-accent-orange hover:underline"
-                >
-                  <span>{t.projects.detailsLink}</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Bottom CTA */}
-        <div className="mt-12 text-center">
-          <Link to="/projects">
-            <Button variant="secondary" size="md" icon={<ArrowRight className="w-4 h-4" />}>
-              {t.projects.viewAll}
-            </Button>
-          </Link>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -47,6 +47,10 @@ export interface ProjectSlot {
   slotNumber: number;
   category: Exclude<ProjectCategoryKey, 'all'>;
   coverImage?: string;
+  titleIt: string;
+  titleEn: string;
+  descIt: string;
+  descEn: string;
 }
 
 export interface GallerySlot {
