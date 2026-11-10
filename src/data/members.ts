@@ -1,80 +1,26 @@
 import type { Member } from '../types';
 
-import jenktland3Bust from '../assets/members/jenktland3.png';
-import redpl4yersBust from '../assets/members/redpl4yers.png';
-import poncherBust from '../assets/members/poncher.png';
-import drp1nBust from '../assets/members/drp1n.png';
-import ohluck_Bust from '../assets/members/ohluck_.png';
-import supercece_Bust from '../assets/members/supercece_.png';
-import lollo235_Bust from '../assets/members/lollo235_.png';
-import manolo006Bust from '../assets/members/manolo006.png';
-import capo_rg5Bust from '../assets/members/capo_rg5.png';
-
 /**
- * Per aggiungere un nuovo membro basta inserire { id, name, roleGroup }!
- * La skin 3D viene generata dinamicamente tramite il link Visage partendo dal nickname.
+ * Lista iniziale dei membri (viene anche letta dinamicamente in tempo reale da ./members.json!).
+ * Nessuna immagine statica salvata: le skin 3D vengono generate in tempo reale da Mojang via NMSR.
  */
 export const membersList: Member[] = [
-  {
-    id: 'jenktland3',
-    name: 'jenktland3',
-    roleGroup: 'owner',
-    customImageUrl: jenktland3Bust,
-  },
-  {
-    id: 'redpl4yers',
-    name: 'REDpl4yers',
-    roleGroup: 'owner',
-    customImageUrl: redpl4yersBust,
-  },
-  {
-    id: 'poncher',
-    name: 'poncher',
-    roleGroup: 'owner',
-    customImageUrl: poncherBust,
-  },
-  {
-    id: 'drp1n',
-    name: 'drp1n',
-    roleGroup: 'owner',
-    customImageUrl: drp1nBust,
-  },
-  {
-    id: 'ohluck_',
-    name: 'ohluck_',
-    roleGroup: 'member',
-    customImageUrl: ohluck_Bust,
-  },
-  {
-    id: 'supercece_',
-    name: 'supercece_',
-    roleGroup: 'owner',
-    customImageUrl: supercece_Bust,
-  },
-  {
-    id: 'lollo235_',
-    name: 'lollo235_',
-    roleGroup: 'member',
-    customImageUrl: lollo235_Bust,
-  },
-  {
-    id: 'manolo006',
-    name: 'Manolo006',
-    roleGroup: 'trial',
-    customImageUrl: manolo006Bust,
-  },
-  {
-    id: 'capo_rg5',
-    name: 'capo_rg5',
-    roleGroup: 'trial',
-    customImageUrl: capo_rg5Bust,
-  },
+  { id: 'jenktland3', name: 'jenktland3', roleGroup: 'owner' },
+  { id: 'redpl4yers', name: 'REDpl4yers', roleGroup: 'owner' },
+  { id: 'poncher', name: 'poncher', roleGroup: 'owner' },
+  { id: 'drp1n', name: 'drp1n', roleGroup: 'owner' },
+  { id: 'ohluck_', name: 'ohluck_', roleGroup: 'member' },
+  { id: 'supercece_', name: 'supercece_', roleGroup: 'owner' },
+  { id: 'lollo235_', name: 'lollo235_', roleGroup: 'member' },
+  { id: 'manolo006', name: 'Manolo006', roleGroup: 'trial' },
+  { id: 'capo_rg5', name: 'capo_rg5', roleGroup: 'trial' },
 ];
 
 /**
- * Genera dinamicamente il link del busto 3D isometrico (512px) a partire dal nickname Minecraft.
- * API: https://visage.surgeplay.com/bust/512/<NICKNAME>
+ * Genera dinamicamente il link del busto 3D isometrico (512px) in tempo reale da Mojang tramite NMSR.
+ * A differenza di Visage (che teneva in cache la vecchia skin per 8 giorni),
+ * NMSR legge la skin aggiornata direttamente dai server di Minecraft!
  */
 export const getMemberBustUrl = (member: Member): string => {
-  return `https://visage.surgeplay.com/bust/512/${encodeURIComponent(member.name)}`;
+  return `https://nmsr.nickac.dev/bust/${encodeURIComponent(member.name)}`;
 };

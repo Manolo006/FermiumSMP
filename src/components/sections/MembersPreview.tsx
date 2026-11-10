@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Type } from 'lucide-react';
-import type { MemberRoleGroup } from '../../types';
-import { membersList } from '../../data/members';
+import type { Member, MemberRoleGroup } from '../../types';
+import { membersList as defaultMembers } from '../../data/members';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -10,29 +10,60 @@ import { MemberCard, type MemberCardStyle } from '../ui/MemberCard';
 
 export const MembersPreview: React.FC = () => {
   const { lang, t } = useLanguage();
+  const [members, setMembers] = useState<Member[]>(defaultMembers);
   const [filter, setFilter] = useState<'all' | MemberRoleGroup>('all');
   const [cardStyle, setCardStyle] = useState<MemberCardStyle>('floating-pill');
   const [usePixelFont, setUsePixelFont] = useState<boolean>(true);
 
+  // Carica in tempo reale ./members.json così se modifichi ruoli o membri da GitHub si aggiorna subito senza build!
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`./members.json?t=${Date.now()}`, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !Array.isArray(data)) return;
+        const parsed: Member[] = data
+          .filter((item) => item && typeof item.name === 'string')
+          .map((item) => ({
+            id: (item.id || item.name).toLowerCase(),
+            name: item.name.trim(),
+            roleGroup:
+              item.roleGroup === 'owner' || item.roleGroup === 'member' || item.roleGroup === 'trial'
+                ? item.roleGroup
+                : 'member',
+          }));
+        if (parsed.length > 0) {
+          setMembers(parsed);
+        }
+      })
+      .catch(() => {
+        // Usa defaultMembers se members.json non è raggiungibile
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const filteredMembers =
-    filter === 'all' ? membersList : membersList.filter((m) => m.roleGroup === filter);
+    filter === 'all' ? members : members.filter((m) => m.roleGroup === filter);
 
   const filterButtons: { key: 'all' | MemberRoleGroup; label: string; count: number }[] = [
-    { key: 'all', label: t.members.filters.all, count: membersList.length },
+    { key: 'all', label: t.members.filters.all, count: members.length },
     {
       key: 'owner',
       label: t.members.filters.owner,
-      count: membersList.filter((m) => m.roleGroup === 'owner').length,
+      count: members.filter((m) => m.roleGroup === 'owner').length,
     },
     {
       key: 'member',
       label: t.members.filters.member,
-      count: membersList.filter((m) => m.roleGroup === 'member').length,
+      count: members.filter((m) => m.roleGroup === 'member').length,
     },
     {
       key: 'trial',
       label: t.members.filters.trial,
-      count: membersList.filter((m) => m.roleGroup === 'trial').length,
+      count: members.filter((m) => m.roleGroup === 'trial').length,
     },
   ];
 
@@ -128,7 +159,7 @@ export const MembersPreview: React.FC = () => {
           </div>
         </div>
 
-        {/* 8 Members Grid */}
+        {/* Members Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7">
           {filteredMembers.map((member) => (
             <MemberCard

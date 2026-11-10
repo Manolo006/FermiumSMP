@@ -363,7 +363,7 @@ export const MediaSection: React.FC = () => {
                           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-text-primary transition-all cursor-pointer active:scale-[0.96]"
                         >
                           <img
-                            src={`https://visage.surgeplay.com/bust/512/${encodeURIComponent(
+                            src={`https://nmsr.nickac.dev/bust/${encodeURIComponent(
                               c.name
                             )}`}
                             alt={c.name}
@@ -382,7 +382,7 @@ export const MediaSection: React.FC = () => {
                 <div className="mt-2.5 px-2 py-1.5 flex flex-wrap items-center justify-between gap-3 text-left">
                   <div className="flex items-center gap-3 min-w-0">
                     <img
-                      src={`https://visage.surgeplay.com/bust/512/${encodeURIComponent(
+                      src={`https://nmsr.nickac.dev/bust/${encodeURIComponent(
                         activeCreator.name
                       )}`}
                       alt={activeCreator.name}
@@ -499,7 +499,7 @@ export const MediaSection: React.FC = () => {
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="relative w-10 h-10 rounded-lg bg-[#101216] border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
                             <img
-                              src={`https://visage.surgeplay.com/bust/512/${encodeURIComponent(
+                              src={`https://nmsr.nickac.dev/bust/${encodeURIComponent(
                                 creator.name
                               )}`}
                               alt={creator.name}
