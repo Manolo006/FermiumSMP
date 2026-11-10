@@ -95,6 +95,12 @@ export const Navbar: React.FC = () => {
             >
               {t.nav.gallery}
             </button>
+            <button
+              onClick={() => scrollToSection('live')}
+              className="px-3.5 py-2 rounded-xl text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.04] transition-colors cursor-pointer"
+            >
+              {t.nav.live}
+            </button>
 
             {/* Community Dropdown */}
             <div
@@ -392,6 +398,12 @@ export const Navbar: React.FC = () => {
               className="block w-full text-left px-3 py-2 rounded-xl text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.05]"
             >
               {t.nav.gallery}
+            </button>
+            <button
+              onClick={() => scrollToSection('live')}
+              className="block w-full text-left px-3 py-2 rounded-xl text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.05]"
+            >
+              {t.nav.live}
             </button>
 
             <div className="pt-2">

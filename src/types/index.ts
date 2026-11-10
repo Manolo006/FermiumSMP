@@ -4,7 +4,33 @@ export interface Member {
   id: string;
   name: string;
   roleGroup: MemberRoleGroup;
-  customImageUrl?: string; // Predisposto per quando l'utente invierà lo stile immagine dinamico
+  customImageUrl?: string;
+}
+
+export interface StreamerCreator {
+  memberId: string;
+  name: string;
+  roleGroup: MemberRoleGroup;
+  /** Username del canale Twitch (es. 'manolo006') per controllo live automatico + iframe */
+  twitchChannel?: string;
+  /** Channel ID di YouTube (es. 'UCxxxxxxxx') o URL/handle del canale */
+  youtubeChannelId?: string;
+  youtubeUrl?: string;
+  /** ID o URL di una live YouTube attiva (opzionale, per embed diretto) */
+  youtubeLiveVideoId?: string;
+  /** Username TikTok senza @ (es. 'manolo006') per i link diretti al profilo e alla live */
+  tiktokUsername?: string;
+}
+
+export interface FeaturedVideo {
+  id: string;
+  slotNumber: number;
+  title?: string;
+  creatorName?: string;
+  platform: 'youtube' | 'tiktok';
+  /** Link completo YouTube (es. https://youtu.be/...) o TikTok; se vuoto mostra lo slot segnaposto */
+  videoUrl?: string;
+  dateLabel?: string;
 }
 
 export type ProjectCategoryKey =
