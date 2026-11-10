@@ -42,7 +42,7 @@ export const membersList: Member[] = [
   {
     id: 'ohluck_',
     name: 'ohluck_',
-    roleGroup: 'owner',
+    roleGroup: 'member',
     customImageUrl: ohluck_Bust,
   },
   {
