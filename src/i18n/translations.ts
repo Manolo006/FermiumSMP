@@ -72,7 +72,7 @@ export const translations = {
         members: { label: 'Membri', sub: 'Giocatori attivi nel server' },
         projects: { label: 'Progetti', sub: 'Valore da inserire' },
         farms: { label: 'Farm', sub: 'Valore da inserire' },
-        worldAge: { label: 'Età del Mondo', sub: 'Dal 14 Ottobre 2026' },
+        worldAge: { label: 'Età del Mondo', sub: 'Dal 12 Ottobre 2026 (22:30)' },
       },
     },
     members: {
@@ -253,7 +253,7 @@ export const translations = {
         members: { label: 'Members', sub: 'Active players on the server' },
         projects: { label: 'Projects', sub: 'Value to be added' },
         farms: { label: 'Farms', sub: 'Value to be added' },
-        worldAge: { label: 'World Age', sub: 'Since October 14, 2026' },
+        worldAge: { label: 'World Age', sub: 'Since October 12, 2026 (22:30)' },
       },
     },
     members: {

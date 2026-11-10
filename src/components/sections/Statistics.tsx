@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Users, FolderGit2, Zap, Clock } from 'lucide-react';
 import { serverStatistics, getWorldAgeDays } from '../../data/statistics';
 import { useLanguage } from '../../i18n/LanguageContext';
 
 export const Statistics: React.FC = () => {
   const { t, lang } = useLanguage();
-  const worldDays = getWorldAgeDays();
+  const [worldDays, setWorldDays] = useState<number>(() => getWorldAgeDays());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setWorldDays(getWorldAgeDays());
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const getIcon = (id: string) => {
     switch (id) {
