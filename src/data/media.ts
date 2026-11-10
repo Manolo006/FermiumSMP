@@ -1,67 +1,51 @@
 import type { StreamerCreator, FeaturedVideo } from '../types';
 
 /**
- * Configurazione Canali Live dei Membri (Twitch, YouTube, TikTok).
- * - Twitch: il sito controlla in automatico se il canale `twitchChannel` è in LIVE
- *   e mostra direttamente il player interattivo quando qualcuno trasmette.
- * - YouTube: se inserisci `youtubeLiveVideoId` (o `youtubeChannelId` per il live embed),
- *   il sito può riprodurre la live o il video direttamente nell'iframe.
- * - TikTok: se inserisci `tiktokUsername`, compare il badge rapido verso `tiktok.com/@username/live`.
+ * Configurazione Ufficiale Canali Creator di Fermium SMP (Twitch, YouTube, TikTok).
+ * - Twitch: controllo automatico LIVE in tempo reale + player interattivo integrato.
+ * - YouTube: Channel ID ufficiale (`UC...`) + link al canale `@handle`.
+ * - TikTok: link diretti al profilo `@username` e alla eventuale Live (`/@username/live`).
  */
 export const streamerCreators: StreamerCreator[] = [
   {
     memberId: 'jenktland3',
     name: 'jenktland3',
     roleGroup: 'owner',
-    twitchChannel: 'jenktland3',
+    twitchChannel: 'jenktland3_',
+    youtubeChannelId: 'UCeFkDCJONKih_-Axmxy9Y3w',
+    youtubeUrl: 'https://www.youtube.com/@jenktland3',
+    tiktokUsername: 'jenktland3',
   },
   {
     memberId: 'redpl4yers',
     name: 'REDpl4yers',
     roleGroup: 'owner',
     twitchChannel: 'redpl4yers',
-  },
-  {
-    memberId: 'poncher',
-    name: 'poncher',
-    roleGroup: 'owner',
-    twitchChannel: 'poncher',
-  },
-  {
-    memberId: 'drp1n',
-    name: 'drp1n',
-    roleGroup: 'owner',
-    twitchChannel: 'drp1n',
-  },
-  {
-    memberId: 'ohluck_',
-    name: 'ohluck_',
-    roleGroup: 'owner',
-    twitchChannel: 'ohluck_',
-  },
-  {
-    memberId: 'supercece_',
-    name: 'supercece_',
-    roleGroup: 'owner',
-    twitchChannel: 'supercece_',
-  },
-  {
-    memberId: 'lollo235_',
-    name: 'lollo235_',
-    roleGroup: 'member',
-    twitchChannel: 'lollo235_',
+    youtubeChannelId: 'UCN8VOZ-ZfRDQCsa5i9sVcDg',
+    youtubeUrl: 'https://www.youtube.com/@REDPL4YERS',
+    tiktokUsername: 'redpl4yers',
   },
   {
     memberId: 'manolo006',
     name: 'Manolo006',
     roleGroup: 'trial',
-    twitchChannel: 'manolo006',
+    twitchChannel: 'manolo_0006',
+    youtubeChannelId: 'UCVypoAS4yRiwc9mASfNeu0g',
+    youtubeUrl: 'https://www.youtube.com/@Manolo006',
+    tiktokUsername: 'manuel_madeddu',
   },
   {
-    memberId: 'capo_rg5',
-    name: 'capo_rg5',
-    roleGroup: 'trial',
-    twitchChannel: 'capo_rg5',
+    memberId: 'poncher',
+    name: 'poncher',
+    roleGroup: 'owner',
+    twitchChannel: 'poncher04',
+  },
+  {
+    memberId: 'ohluck_',
+    name: 'ohluck_',
+    roleGroup: 'owner',
+    youtubeChannelId: 'UCG1b0T9S4720yN_ANAHaw8A',
+    youtubeUrl: 'https://www.youtube.com/@ohluck_',
   },
 ];
 
@@ -85,7 +69,6 @@ export const featuredVideos: FeaturedVideo[] = [
     id: 'video-1',
     slotNumber: 1,
     platform: 'youtube',
-    // Incolla qui `videoUrl`, `title` e `creatorName` quando vuoi mostrare un video reale
   },
   {
     id: 'video-2',

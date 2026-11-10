@@ -33,6 +33,7 @@ export const MediaSection: React.FC = () => {
   const [liveMap, setLiveMap] = useState<Record<string, LiveStreamStatus>>({});
   const [checking, setChecking] = useState<boolean>(true);
   const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<'twitch' | 'youtube'>('twitch');
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   const parentHost =
@@ -128,6 +129,8 @@ export const MediaSection: React.FC = () => {
       const firstLive = streamerCreators.find((c) => results[c.memberId]?.isLive);
       if (firstLive) {
         setSelectedCreatorId((prev) => prev || firstLive.memberId);
+        const st = results[firstLive.memberId];
+        if (st?.platform) setSelectedPlatform(st.platform);
       }
     }
 
@@ -144,6 +147,17 @@ export const MediaSection: React.FC = () => {
     streamerCreators.find((c) => c.memberId === selectedCreatorId) || liveCreators[0];
   const activeStatus = activeCreator ? liveMap[activeCreator.memberId] : undefined;
 
+  const handleSelectCreator = (creator: StreamerCreator, preferredPlatform?: 'twitch' | 'youtube') => {
+    setSelectedCreatorId(creator.memberId);
+    if (preferredPlatform) {
+      setSelectedPlatform(preferredPlatform);
+    } else if (creator.twitchChannel) {
+      setSelectedPlatform('twitch');
+    } else if (creator.youtubeChannelId || creator.youtubeLiveVideoId) {
+      setSelectedPlatform('youtube');
+    }
+  };
+
   const roleDotColor: Record<MemberRoleGroup, string> = {
     owner: 'bg-role-owner shadow-[0_0_8px_#60A5FA]',
     member: 'bg-role-member shadow-[0_0_8px_#38BDF8]',
@@ -152,28 +166,33 @@ export const MediaSection: React.FC = () => {
 
   const renderStreamIframe = (creator: StreamerCreator) => {
     const ytLiveId = extractYouTubeId(creator.youtubeLiveVideoId);
-    if (ytLiveId) {
-      return (
-        <iframe
-          src={`https://www.youtube.com/embed/${ytLiveId}?autoplay=1&rel=0`}
-          title={`${creator.name} YouTube Live`}
-          className="w-full h-full border-0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-        />
-      );
-    }
+    const useYouTube =
+      (selectedPlatform === 'youtube' && (ytLiveId || creator.youtubeChannelId)) ||
+      (!creator.twitchChannel && (ytLiveId || creator.youtubeChannelId));
 
-    if (creator.youtubeChannelId && !creator.twitchChannel) {
-      return (
-        <iframe
-          src={`https://www.youtube.com/embed/live_stream?channel=${creator.youtubeChannelId}&autoplay=1`}
-          title={`${creator.name} YouTube Channel Live`}
-          className="w-full h-full border-0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-        />
-      );
+    if (useYouTube) {
+      if (ytLiveId) {
+        return (
+          <iframe
+            src={`https://www.youtube.com/embed/${ytLiveId}?autoplay=1&rel=0`}
+            title={`${creator.name} YouTube Live`}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        );
+      }
+      if (creator.youtubeChannelId) {
+        return (
+          <iframe
+            src={`https://www.youtube.com/embed/live_stream?channel=${creator.youtubeChannelId}&autoplay=0`}
+            title={`${creator.name} YouTube Channel Live`}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        );
+      }
     }
 
     if (creator.twitchChannel) {
@@ -240,7 +259,7 @@ export const MediaSection: React.FC = () => {
         {/* LIVE STREAM THEATER + ROSTER */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-20">
           {/* Left: 16:9 Stream Player Frame */}
-          <div className="lg:col-span-8 flex flex-col">
+          <div className="lg:col-span-7 flex flex-col">
             <div className="glass-panel rounded-2xl p-2.5 flex-1 flex flex-col justify-between">
               <div className="aspect-[16/9] w-full rounded-xl overflow-hidden border border-white/[0.06] bg-[#0D0F13] relative">
                 {activeCreator ? (
@@ -258,10 +277,10 @@ export const MediaSection: React.FC = () => {
                       {t.media.offlineSubtitle}
                     </p>
                     <div className="flex flex-wrap items-center justify-center gap-2">
-                      {streamerCreators.slice(0, 4).map((c) => (
+                      {streamerCreators.map((c) => (
                         <button
                           key={c.memberId}
-                          onClick={() => setSelectedCreatorId(c.memberId)}
+                          onClick={() => handleSelectCreator(c)}
                           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-text-primary transition-all cursor-pointer active:scale-[0.96]"
                         >
                           <img
@@ -313,8 +332,8 @@ export const MediaSection: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* External Platform Links (Twitch / YouTube / TikTok) */}
-                  <div className="flex items-center gap-2">
+                  {/* Platform Switcher & External Links */}
+                  <div className="flex flex-wrap items-center gap-2">
                     {activeStatus?.viewers && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/10 text-xs font-mono text-text-secondary">
                         <Eye className="w-3.5 h-3.5 text-red-400" />
@@ -352,13 +371,13 @@ export const MediaSection: React.FC = () => {
 
                     {activeCreator.tiktokUsername && (
                       <a
-                        href={`https://www.tiktok.com/@${activeCreator.tiktokUsername}/live`}
+                        href={`https://www.tiktok.com/@${activeCreator.tiktokUsername}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/[0.06] text-text-primary border border-white/15 hover:bg-white/[0.12] transition-colors"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-accent-orange" />
-                        <span>TikTok Live</span>
+                        <span>TikTok</span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     )}
@@ -368,8 +387,8 @@ export const MediaSection: React.FC = () => {
             </div>
           </div>
 
-          {/* Right: Member Streamer Roster */}
-          <div className="lg:col-span-4">
+          {/* Right: Official Creator Roster */}
+          <div className="lg:col-span-5">
             <div className="glass-panel rounded-2xl p-4 h-full flex flex-col justify-between text-left">
               <div>
                 <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.06]">
@@ -382,7 +401,7 @@ export const MediaSection: React.FC = () => {
                   <Tv className="w-4 h-4 text-accent-orange" />
                 </div>
 
-                <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
+                <div className="space-y-2">
                   {streamerCreators.map((creator) => {
                     const st = liveMap[creator.memberId];
                     const isLive = Boolean(st?.isLive);
@@ -391,21 +410,21 @@ export const MediaSection: React.FC = () => {
                     return (
                       <div
                         key={creator.memberId}
-                        onClick={() => setSelectedCreatorId(creator.memberId)}
-                        className={`w-full flex items-center justify-between gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        onClick={() => handleSelectCreator(creator)}
+                        className={`w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl border transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-white/[0.08] border-accent-orange/50 shadow-glow-orange'
                             : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.05] hover:border-white/15'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="relative w-9 h-9 rounded-lg bg-[#101216] border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                          <div className="relative w-10 h-10 rounded-lg bg-[#101216] border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
                             <img
                               src={`https://visage.surgeplay.com/bust/512/${encodeURIComponent(
                                 creator.name
                               )}`}
                               alt={creator.name}
-                              className="w-8 h-8 object-contain"
+                              className="w-9 h-9 object-contain"
                               loading="lazy"
                             />
                           </div>
@@ -416,30 +435,58 @@ export const MediaSection: React.FC = () => {
                                   roleDotColor[creator.roleGroup]
                                 }`}
                               />
-                              <span className="text-xs sm:text-sm font-heading font-medium text-text-primary truncate">
+                              <span className="text-sm font-heading font-semibold text-text-primary truncate">
                                 {creator.name}
                               </span>
+                              {isLive && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-red-500/20 text-red-400 border border-red-500/40 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                                  LIVE
+                                </span>
+                              )}
                             </div>
                             <span className="text-[11px] font-mono text-text-muted block truncate">
                               {isLive && st?.uptime
-                                ? `Live da ${st.uptime}`
+                                ? `Live (${st.uptime})`
                                 : creator.twitchChannel
                                   ? `twitch.tv/${creator.twitchChannel}`
-                                  : 'Fermium SMP'}
+                                  : creator.youtubeUrl?.replace('https://www.', '')}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {isLive ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-red-500/20 text-red-400 border border-red-500/40 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                              LIVE
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono text-text-muted bg-white/[0.03] border border-white/[0.06]">
-                              OFFLINE
-                            </span>
+                        {/* Platform Pills */}
+                        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                          {creator.twitchChannel && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectCreator(creator, 'twitch');
+                              }}
+                              title={`Player Twitch: ${creator.twitchChannel}`}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium border transition-colors cursor-pointer ${
+                                isSelected && selectedPlatform === 'twitch'
+                                  ? 'bg-[#9146FF] text-white border-[#9146FF]'
+                                  : 'bg-[#9146FF]/15 text-[#c49fff] border-[#9146FF]/30 hover:bg-[#9146FF]/25'
+                              }`}
+                            >
+                              Twitch
+                            </button>
+                          )}
+
+                          {creator.youtubeUrl && (
+                            <a
+                              href={creator.youtubeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              title={`YouTube: ${creator.name}`}
+                              className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 transition-colors inline-flex items-center gap-1"
+                            >
+                              <span>YouTube</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
                           )}
 
                           {creator.tiktokUsername && (
@@ -448,10 +495,11 @@ export const MediaSection: React.FC = () => {
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              title="TikTok"
-                              className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-white/[0.06] hover:bg-white/[0.14] text-text-primary border border-white/10 transition-colors"
+                              title={`TikTok: @${creator.tiktokUsername}`}
+                              className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium bg-white/[0.06] hover:bg-white/[0.14] text-text-primary border border-white/10 transition-colors inline-flex items-center gap-1"
                             >
-                              TikTok
+                              <span>TikTok</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
                             </a>
                           )}
                         </div>
