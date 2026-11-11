@@ -7,7 +7,6 @@ import {
   Users,
   FolderGit2,
   History,
-  Award,
   Map,
   Database,
   Archive,
@@ -177,22 +176,6 @@ export const Navbar: React.FC = () => {
                         <div className="text-xs text-text-secondary">{t.nav.timelineSub}</div>
                       </div>
                     </Link>
-
-                    <Link
-                      to="/hall-of-fame"
-                      onClick={() => setCommunityOpen(false)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.06] transition-colors group"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center text-text-secondary shrink-0">
-                        <Award className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-heading font-medium text-text-primary">
-                          {t.nav.hallOfFame}
-                        </div>
-                        <div className="text-xs text-text-secondary">{t.nav.hallOfFameSub}</div>
-                      </div>
-                    </Link>
                   </div>
                 </div>
               )}
@@ -247,13 +230,13 @@ export const Navbar: React.FC = () => {
                     <Link
                       to="/tools/storage"
                       onClick={() => setToolsOpen(false)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.06] transition-colors"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.06] transition-colors group"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center text-text-secondary shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-accent-orange/10 border border-accent-orange/20 flex items-center justify-center text-accent-orange shrink-0">
                         <Database className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="text-sm font-heading font-medium text-text-primary">
+                        <div className="text-sm font-heading font-medium text-text-primary group-hover:text-accent-orange transition-colors">
                           {t.nav.storage}
                         </div>
                         <div className="text-xs text-text-secondary">{t.nav.storageSub}</div>
@@ -263,13 +246,13 @@ export const Navbar: React.FC = () => {
                     <Link
                       to="/tools/archive"
                       onClick={() => setToolsOpen(false)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.06] transition-colors"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.06] transition-colors group"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center text-text-secondary shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-accent-orange/10 border border-accent-orange/20 flex items-center justify-center text-accent-orange shrink-0">
                         <Archive className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="text-sm font-heading font-medium text-text-primary">
+                        <div className="text-sm font-heading font-medium text-text-primary group-hover:text-accent-orange transition-colors">
                           {t.nav.archive}
                         </div>
                         <div className="text-xs text-text-secondary">{t.nav.archiveSub}</div>

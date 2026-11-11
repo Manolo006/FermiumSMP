@@ -93,11 +93,6 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/hall-of-fame" className="hover:text-text-primary transition-colors">
-                  {t.nav.hallOfFame}
-                </Link>
-              </li>
-              <li>
                 <a
                   href={DISCORD_INVITE_URL}
                   target="_blank"

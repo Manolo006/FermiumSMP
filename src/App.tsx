@@ -3,6 +3,8 @@ import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { LanguageProvider } from './i18n/LanguageContext';
 import { Layout } from './components/layout/Layout';
 import { Home } from './pages/Home';
+import { TmcToolsPage } from './pages/TmcToolsPage';
+import { ArchivePage } from './pages/ArchivePage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 
 export const App: React.FC = () => {
@@ -19,10 +21,10 @@ export const App: React.FC = () => {
             <Route path="/projects/:id" element={<PlaceholderPage title="Project Detail" />} />
             <Route path="/gallery" element={<PlaceholderPage title="Gallery" />} />
             <Route path="/timeline" element={<PlaceholderPage title="Timeline" />} />
-            <Route path="/hall-of-fame" element={<PlaceholderPage title="Hall of Fame" />} />
             <Route path="/world" element={<PlaceholderPage title="World Map" />} />
-            <Route path="/tools/storage" element={<PlaceholderPage title="Storage" />} />
-            <Route path="/tools/archive" element={<PlaceholderPage title="Archive" />} />
+            <Route path="/tools/storage" element={<TmcToolsPage />} />
+            <Route path="/tools/calculators" element={<TmcToolsPage />} />
+            <Route path="/tools/archive" element={<ArchivePage />} />
             <Route path="/tools/status" element={<PlaceholderPage title="Server Status" />} />
             <Route path="*" element={<Home />} />
           </Routes>
