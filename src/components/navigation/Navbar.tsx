@@ -389,6 +389,28 @@ export const Navbar: React.FC = () => {
               {t.nav.live}
             </button>
 
+            <div className="pt-2 mt-2 border-t border-white/10 space-y-1">
+              <div className="px-3 py-1 text-[11px] font-mono uppercase tracking-wider text-text-muted">
+                {t.nav.tools}
+              </div>
+              <Link
+                to="/tools/storage"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-text-secondary hover:text-accent-orange hover:bg-white/[0.05]"
+              >
+                <Database className="w-4 h-4 text-accent-orange" />
+                <span>{t.nav.storage}</span>
+              </Link>
+              <Link
+                to="/tools/archive"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-text-secondary hover:text-accent-orange hover:bg-white/[0.05]"
+              >
+                <Archive className="w-4 h-4 text-accent-orange" />
+                <span>{t.nav.archive}</span>
+              </Link>
+            </div>
+
             <div className="pt-2">
               <Button
                 variant="primary"

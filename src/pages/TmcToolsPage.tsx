@@ -65,8 +65,12 @@ export const TmcToolsPage: React.FC = () => {
   const handleOwChange = (axis: 'x' | 'y' | 'z', val: string) => {
     if (axis === 'x') {
       setOwX(val);
+      if (val.trim() === '') {
+        setNetherX('');
+        return;
+      }
       const n = Number(val);
-      if (!Number.isNaN(n) && val.trim() !== '' && val !== '-') {
+      if (!Number.isNaN(n) && val !== '-') {
         setNetherX(String(Math.floor(n / 8)));
       }
     } else if (axis === 'y') {
@@ -74,8 +78,12 @@ export const TmcToolsPage: React.FC = () => {
       setNetherY(val);
     } else {
       setOwZ(val);
+      if (val.trim() === '') {
+        setNetherZ('');
+        return;
+      }
       const n = Number(val);
-      if (!Number.isNaN(n) && val.trim() !== '' && val !== '-') {
+      if (!Number.isNaN(n) && val !== '-') {
         setNetherZ(String(Math.floor(n / 8)));
       }
     }
@@ -84,8 +92,12 @@ export const TmcToolsPage: React.FC = () => {
   const handleNetherChange = (axis: 'x' | 'y' | 'z', val: string) => {
     if (axis === 'x') {
       setNetherX(val);
+      if (val.trim() === '') {
+        setOwX('');
+        return;
+      }
       const n = Number(val);
-      if (!Number.isNaN(n) && val.trim() !== '' && val !== '-') {
+      if (!Number.isNaN(n) && val !== '-') {
         setOwX(String(Math.round(n * 8)));
       }
     } else if (axis === 'y') {
@@ -93,8 +105,12 @@ export const TmcToolsPage: React.FC = () => {
       setOwY(val);
     } else {
       setNetherZ(val);
+      if (val.trim() === '') {
+        setOwZ('');
+        return;
+      }
       const n = Number(val);
-      if (!Number.isNaN(n) && val.trim() !== '' && val !== '-') {
+      if (!Number.isNaN(n) && val !== '-') {
         setOwZ(String(Math.round(n * 8)));
       }
     }
@@ -181,7 +197,7 @@ export const TmcToolsPage: React.FC = () => {
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
-              16 / Stack (Ender Pearl, Cartelli, ecc.)
+              {isIt ? '16 / Stack (Ender Pearl, Cartelli, ecc.)' : '16 / Stack (Ender Pearls, Signs, etc.)'}
             </button>
           </div>
         </div>
@@ -379,12 +395,12 @@ export const TmcToolsPage: React.FC = () => {
                     {copiedCoord === 'ow' ? (
                       <>
                         <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Copiato</span>
+                        <span>{isIt ? 'Copiato' : 'Copied'}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-3.5 h-3.5" />
-                        <span>Copia</span>
+                        <span>{isIt ? 'Copia' : 'Copy'}</span>
                       </>
                     )}
                   </button>
@@ -435,12 +451,12 @@ export const TmcToolsPage: React.FC = () => {
                     {copiedCoord === 'nether' ? (
                       <>
                         <Check className="w-3.5 h-3.5 text-red-400" />
-                        <span>Copiato</span>
+                        <span>{isIt ? 'Copiato' : 'Copied'}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-3.5 h-3.5" />
-                        <span>Copia</span>
+                        <span>{isIt ? 'Copia' : 'Copy'}</span>
                       </>
                     )}
                   </button>
@@ -482,7 +498,7 @@ export const TmcToolsPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3.5 rounded-xl bg-[#101216]/90 border border-white/[0.07]">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted block mb-1">
-                  Coordinate Chunk (Overworld)
+                  {isIt ? 'Coordinate Chunk (Overworld)' : 'Chunk Coordinates (Overworld)'}
                 </span>
                 <span className="text-sm font-mono font-semibold text-text-primary">
                   Chunk [{chunkX}, {chunkZ}]
@@ -490,7 +506,7 @@ export const TmcToolsPage: React.FC = () => {
               </div>
               <div className="p-3.5 rounded-xl bg-[#101216]/90 border border-white/[0.07]">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted block mb-1">
-                  File Regione (.mca)
+                  {isIt ? 'File Regione (.mca)' : 'Region File (.mca)'}
                 </span>
                 <span className="text-sm font-mono font-semibold text-accent-orange">
                   r.{regionX}.{regionZ}.mca
@@ -534,7 +550,7 @@ export const TmcToolsPage: React.FC = () => {
 
               <div className="p-3.5 rounded-xl bg-[#101216]/90 border border-white/[0.07] flex items-center justify-between">
                 <span className="text-xs font-mono text-text-secondary">
-                  Shulker Box / Ora:
+                  {isIt ? 'Shulker Box / Ora:' : 'Shulker Boxes / Hour:'}
                 </span>
                 <span className="text-base font-mono font-bold text-text-primary">
                   {shulkersPerHour.toFixed(1)} SB/h
@@ -543,7 +559,7 @@ export const TmcToolsPage: React.FC = () => {
 
               <div className="p-3.5 rounded-xl bg-[#101216]/90 border border-white/[0.07] flex items-center justify-between">
                 <span className="text-xs font-mono text-text-secondary">
-                  Loader minimi (1x / 2x / 4x):
+                  {isIt ? 'Loader minimi (1x / 2x / 4x):' : 'Min Loaders (1x / 2x / 4x):'}
                 </span>
                 <span className="text-xs font-mono font-semibold text-text-primary">
                   {Math.ceil(hopperMultiple)}× (1x) · {Math.ceil(hopperMultiple / 2)}× (2x) ·{' '}

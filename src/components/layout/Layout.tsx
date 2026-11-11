@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Navbar } from '../navigation/Navbar';
 import { Footer } from './Footer';
 
@@ -7,6 +8,12 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
   return (
     <div className="min-h-screen flex flex-col bg-bg-main text-text-primary font-sans relative">
       <Navbar />
