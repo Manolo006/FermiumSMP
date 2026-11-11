@@ -13,6 +13,7 @@ import {
   extractYouTubeId,
   extractTikTokVideoId,
 } from '../../data/media';
+import { checkYouTubeChannelsLive } from '../../utils/youtubeLiveCheck';
 import type { StreamerCreator, MemberRoleGroup } from '../../types';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Badge } from '../ui/Badge';
@@ -21,6 +22,9 @@ interface LiveStreamStatus {
   memberId: string;
   isLive: boolean;
   platform: 'twitch' | 'youtube' | null;
+  twitchLive?: boolean;
+  youtubeLive?: boolean;
+  youtubeVideoId?: string;
   uptime?: string;
   title?: string;
   viewers?: string;
@@ -121,7 +125,7 @@ export const MediaSection: React.FC = () => {
     };
   }, []);
 
-  // 2. Controlla automaticamente le live dei membri
+  // 2. Controlla automaticamente le live dei membri (Twitch + YouTube in parallelo)
   useEffect(() => {
     let cancelled = false;
 
@@ -129,76 +133,100 @@ export const MediaSection: React.FC = () => {
       setChecking(true);
       const results: Record<string, LiveStreamStatus> = {};
 
-      await Promise.all(
-        streamerCreators.map(async (creator) => {
-          const ytLiveId = extractYouTubeId(creator.youtubeLiveVideoId);
-          if (ytLiveId) {
-            results[creator.memberId] = {
-              memberId: creator.memberId,
-              isLive: true,
-              platform: 'youtube',
-            };
-            return;
-          }
+      const ytChannelIds = streamerCreators
+        .map((c) => c.youtubeChannelId)
+        .filter((id): id is string => Boolean(id));
 
-          if (creator.twitchChannel) {
-            try {
-              const res = await fetch(
-                `https://decapi.me/twitch/uptime/${encodeURIComponent(creator.twitchChannel)}`,
-                { cache: 'no-store' }
-              );
-              const text = (await res.text()).trim();
-              const lower = text.toLowerCase();
+      const ytChecksPromise = checkYouTubeChannelsLive(ytChannelIds);
 
-              const isOffline =
-                !res.ok ||
-                !text ||
-                lower.includes('offline') ||
-                lower.includes('not found') ||
-                lower.includes('error') ||
-                lower.includes('invalid') ||
-                lower.includes('404');
+      const twitchResults: Record<
+        string,
+        { isLive: boolean; uptime?: string; title?: string; viewers?: string }
+      > = {};
 
-              if (!isOffline) {
-                let title = '';
-                let viewers = '';
-                try {
-                  const [titleRes, viewersRes] = await Promise.all([
-                    fetch(
-                      `https://decapi.me/twitch/title/${encodeURIComponent(creator.twitchChannel)}`
-                    ),
-                    fetch(
-                      `https://decapi.me/twitch/viewercount/${encodeURIComponent(creator.twitchChannel)}`
-                    ),
-                  ]);
-                  if (titleRes.ok) title = (await titleRes.text()).trim();
-                  if (viewersRes.ok) viewers = (await viewersRes.text()).trim();
-                } catch {
-                  // Ignora errori secondari
-                }
+      await Promise.all([
+        ytChecksPromise,
+        ...streamerCreators.map(async (creator) => {
+          if (!creator.twitchChannel) return;
+          try {
+            const res = await fetch(
+              `https://decapi.me/twitch/uptime/${encodeURIComponent(creator.twitchChannel)}`,
+              { cache: 'no-store' }
+            );
+            const text = (await res.text()).trim();
+            const lower = text.toLowerCase();
 
-                results[creator.memberId] = {
-                  memberId: creator.memberId,
-                  isLive: true,
-                  platform: 'twitch',
-                  uptime: text,
-                  title,
-                  viewers,
-                };
-                return;
+            const isOffline =
+              !res.ok ||
+              !text ||
+              lower.includes('offline') ||
+              lower.includes('not found') ||
+              lower.includes('error') ||
+              lower.includes('invalid') ||
+              lower.includes('404');
+
+            if (!isOffline) {
+              let title = '';
+              let viewers = '';
+              try {
+                const [titleRes, viewersRes] = await Promise.all([
+                  fetch(
+                    `https://decapi.me/twitch/title/${encodeURIComponent(creator.twitchChannel)}`
+                  ),
+                  fetch(
+                    `https://decapi.me/twitch/viewercount/${encodeURIComponent(creator.twitchChannel)}`
+                  ),
+                ]);
+                if (titleRes.ok) title = (await titleRes.text()).trim();
+                if (viewersRes.ok) viewers = (await viewersRes.text()).trim();
+              } catch {
+                // Ignora errori secondari
               }
-            } catch {
-              // Ignora errori di rete
-            }
-          }
 
-          results[creator.memberId] = {
-            memberId: creator.memberId,
-            isLive: false,
-            platform: null,
-          };
-        })
-      );
+              twitchResults[creator.memberId] = {
+                isLive: true,
+                uptime: text,
+                title,
+                viewers,
+              };
+            }
+          } catch {
+            // Ignora errori di rete
+          }
+        }),
+      ]);
+
+      const ytResults = await ytChecksPromise;
+
+      for (const creator of streamerCreators) {
+        const tw = twitchResults[creator.memberId];
+        const manualYtId = extractYouTubeId(creator.youtubeLiveVideoId);
+        const autoYt = creator.youtubeChannelId
+          ? ytResults[creator.youtubeChannelId]
+          : undefined;
+
+        const ytLive = Boolean(manualYtId || autoYt?.isLive);
+        const twLive = Boolean(tw?.isLive);
+        const isLive = twLive || ytLive;
+
+        const platform: 'twitch' | 'youtube' | null = twLive
+          ? 'twitch'
+          : ytLive
+            ? 'youtube'
+            : null;
+
+        results[creator.memberId] = {
+          memberId: creator.memberId,
+          isLive,
+          platform,
+          twitchLive: twLive,
+          youtubeLive: ytLive,
+          youtubeVideoId: manualYtId || autoYt?.videoId,
+          uptime: tw?.uptime,
+          title: twLive ? tw?.title : autoYt?.title,
+          viewers: tw?.viewers,
+        };
+      }
 
       if (cancelled) return;
       setLiveMap(results);
@@ -229,6 +257,11 @@ export const MediaSection: React.FC = () => {
     setSelectedCreatorId(creator.memberId);
     if (preferredPlatform) {
       setSelectedPlatform(preferredPlatform);
+      return;
+    }
+    const st = liveMap[creator.memberId];
+    if (st?.youtubeLive && !st?.twitchLive) {
+      setSelectedPlatform('youtube');
     } else if (creator.twitchChannel) {
       setSelectedPlatform('twitch');
     } else if (creator.youtubeChannelId || creator.youtubeLiveVideoId) {
@@ -243,7 +276,8 @@ export const MediaSection: React.FC = () => {
   };
 
   const renderStreamIframe = (creator: StreamerCreator) => {
-    const ytLiveId = extractYouTubeId(creator.youtubeLiveVideoId);
+    const status = liveMap[creator.memberId];
+    const ytLiveId = extractYouTubeId(creator.youtubeLiveVideoId) || status?.youtubeVideoId;
     const useYouTube =
       (selectedPlatform === 'youtube' && (ytLiveId || creator.youtubeChannelId)) ||
       (!creator.twitchChannel && (ytLiveId || creator.youtubeChannelId));
@@ -252,7 +286,7 @@ export const MediaSection: React.FC = () => {
       if (ytLiveId) {
         return (
           <iframe
-            src={`https://www.youtube.com/embed/${ytLiveId}?autoplay=1&rel=0`}
+            src={`https://www.youtube.com/embed/${ytLiveId}?autoplay=${status?.youtubeLive ? 1 : 0}&rel=0`}
             title={`${creator.name} YouTube Live`}
             className="w-full h-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -263,7 +297,9 @@ export const MediaSection: React.FC = () => {
       if (creator.youtubeChannelId) {
         return (
           <iframe
-            src={`https://www.youtube.com/embed/live_stream?channel=${creator.youtubeChannelId}&autoplay=0`}
+            src={`https://www.youtube.com/embed/live_stream?channel=${creator.youtubeChannelId}&autoplay=${
+              status?.youtubeLive ? 1 : 0
+            }`}
             title={`${creator.name} YouTube Channel Live`}
             className="w-full h-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -274,7 +310,7 @@ export const MediaSection: React.FC = () => {
     }
 
     if (creator.twitchChannel) {
-      const isCurrentlyLive = liveMap[creator.memberId]?.isLive;
+      const isCurrentlyLive = Boolean(status?.twitchLive);
       return (
         <iframe
           src={`https://player.twitch.tv/?channel=${encodeURIComponent(
@@ -524,11 +560,15 @@ export const MediaSection: React.FC = () => {
                               )}
                             </div>
                             <span className="text-[11px] font-mono text-text-muted block truncate">
-                              {isLive && st?.uptime
-                                ? `Live (${st.uptime})`
-                                : creator.twitchChannel
-                                  ? `twitch.tv/${creator.twitchChannel}`
-                                  : creator.youtubeUrl?.replace('https://www.', '')}
+                              {st?.twitchLive && st?.uptime
+                                ? `Live Twitch (${st.uptime})`
+                                : st?.youtubeLive
+                                  ? st.title
+                                    ? `Live YT: ${st.title}`
+                                    : 'Live su YouTube'
+                                  : creator.twitchChannel
+                                    ? `twitch.tv/${creator.twitchChannel}`
+                                    : creator.youtubeUrl?.replace('https://www.', '')}
                             </span>
                           </div>
                         </div>
@@ -553,18 +593,36 @@ export const MediaSection: React.FC = () => {
                             </button>
                           )}
 
-                          {creator.youtubeUrl && (
-                            <a
-                              href={creator.youtubeUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              title={`YouTube: ${creator.name}`}
-                              className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 transition-colors inline-flex items-center gap-1"
+                          {creator.youtubeChannelId ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectCreator(creator, 'youtube');
+                              }}
+                              title={`Player YouTube: ${creator.name}`}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium border transition-colors cursor-pointer ${
+                                isSelected && selectedPlatform === 'youtube'
+                                  ? 'bg-red-600 text-white border-red-500'
+                                  : 'bg-red-500/15 text-red-300 border-red-500/30 hover:bg-red-500/25'
+                              }`}
                             >
-                              <span>YouTube</span>
-                              <ExternalLink className="w-2.5 h-2.5" />
-                            </a>
+                              YouTube
+                            </button>
+                          ) : (
+                            creator.youtubeUrl && (
+                              <a
+                                href={creator.youtubeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                title={`YouTube: ${creator.name}`}
+                                className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 transition-colors inline-flex items-center gap-1"
+                              >
+                                <span>YouTube</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            )
                           )}
 
                           {creator.tiktokUsername && (
