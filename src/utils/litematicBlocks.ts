@@ -55,6 +55,7 @@ export type TexturePattern =
 export type BlockFacing = 'north' | 'south' | 'east' | 'west' | 'up' | 'down' | 'none';
 
 export interface BlockVisualStyle {
+  blockName: string;
   r: number;
   g: number;
   b: number;
@@ -367,6 +368,7 @@ export function getBlockVisualStyle(
   const { shape, pattern } = detectShapeAndPattern(name, heightScale);
 
   const style: BlockVisualStyle = {
+    blockName: name,
     r,
     g,
     b,

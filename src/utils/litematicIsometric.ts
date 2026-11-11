@@ -1,6 +1,10 @@
 import type { BlockVisualStyle } from './litematicBlocks';
 import type { ParsedLitematic } from './litematicParser';
-import { getBlockFaceSprite, type FaceSlot } from './litematicTextures';
+import {
+  ensureMinecraftTextures,
+  getBlockFaceSprite,
+  type FaceSlot,
+} from './litematicTextures';
 
 export type IsoRotation = 0 | 1 | 2 | 3;
 
@@ -414,7 +418,7 @@ export function renderLitematicToCanvas(
       const outline = style.alpha >= 0.9 ? cubeOutline : null;
 
       if (useGeometry && style.shape === 'jelly') {
-        // Inner darker solid core of Slime / Honey blocks
+        // Inner darker solid core + outer real Minecraft slime/honey texture
         const isHoney = style.pattern === 'honey';
         drawIsoBox({
           ctx,
@@ -435,7 +439,6 @@ export function renderLitematicToCanvas(
           rightFill: isHoney ? '#9A5B09' : '#326F21',
           outline: null,
         });
-        // Outer translucent jelly shell
         drawIsoBox({
           ctx,
           dpr,
@@ -453,10 +456,11 @@ export function renderLitematicToCanvas(
           topFill: isHoney ? 'rgba(246, 186, 56, 0.56)' : 'rgba(126, 224, 92, 0.54)',
           leftFill: isHoney ? 'rgba(214, 154, 40, 0.56)' : 'rgba(98, 188, 70, 0.54)',
           rightFill: isHoney ? 'rgba(182, 128, 30, 0.56)' : 'rgba(78, 154, 54, 0.54)',
-          outline: 'rgba(15, 20, 15, 0.28)',
+          outline: 'rgba(15, 20, 15, 0.24)',
+          sprites: spriteTriples ? spriteTriples[stIdx] : undefined,
         });
       } else if (useGeometry && style.shape === 'hopper') {
-        // Spout bottom + wide funnel rim
+        // Spout bottom + wide funnel rim with real hopper textures
         drawIsoBox({
           ctx,
           dpr,
@@ -475,6 +479,7 @@ export function renderLitematicToCanvas(
           leftFill: leftColors[stIdx],
           rightFill: rightColors[stIdx],
           outline,
+          sprites,
         });
         drawIsoBox({
           ctx,
@@ -494,6 +499,7 @@ export function renderLitematicToCanvas(
           leftFill: leftColors[stIdx],
           rightFill: rightColors[stIdx],
           outline,
+          sprites,
         });
       } else if (useGeometry && style.shape === 'chest') {
         drawIsoBox({
@@ -729,13 +735,14 @@ export function getAutoIsometricPreviewUrl(
   parseFn: (url: string) => Promise<ParsedLitematic>,
   rotation: IsoRotation = 0
 ): Promise<string> {
-  const key = `${fileUrl}#hd2#rot=${rotation}`;
+  const key = `${fileUrl}#mc1#rot=${rotation}`;
   const existing = previewDataUrlCache.get(key);
   if (existing) return existing;
 
   const task = (async () => {
     const parsed = await parseFn(fileUrl);
     if (parsed.totalBlocks === 0) return '';
+    await ensureMinecraftTextures(parsed.paletteStyles);
     const canvas = document.createElement('canvas');
     renderLitematicToCanvas(canvas, parsed, {
       width: 960,

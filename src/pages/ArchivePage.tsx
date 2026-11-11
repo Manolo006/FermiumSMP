@@ -28,6 +28,7 @@ import {
   renderLitematicToCanvas,
   type IsoRotation,
 } from '../utils/litematicIsometric';
+import { ensureMinecraftTextures } from '../utils/litematicTextures';
 
 interface SchematicItem {
   id?: string;
@@ -354,12 +355,13 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
     setParsed(null);
   }, [state?.item.id, state?.item.name]);
 
-  // Parse .litematic when needed in isometric mode
+  // Parse .litematic and ensure real Minecraft textures are loaded when opening Lightbox
   useEffect(() => {
     if (!state || state.mode !== 'iso' || !hasLitematic) return;
     let cancelled = false;
     parseLitematicFromUrl(href)
-      .then((res) => {
+      .then(async (res) => {
+        await ensureMinecraftTextures(res.paletteStyles);
         if (!cancelled) {
           setParsed(res);
           setSliceY(res.sizeY - 1);
