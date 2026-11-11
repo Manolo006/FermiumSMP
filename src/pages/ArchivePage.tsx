@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive,
   Box,
@@ -6,14 +6,27 @@ import {
   ChevronRight,
   Download,
   FileCode2,
+  Image as ImageIcon,
   Images,
   Maximize2,
+  RotateCcw,
+  RotateCw,
   Search,
   X,
   ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Badge } from '../components/ui/Badge';
+import {
+  parseLitematicFromUrl,
+  type ParsedLitematic,
+} from '../utils/litematicParser';
+import {
+  getAutoIsometricPreviewUrl,
+  renderLitematicToCanvas,
+  type IsoRotation,
+} from '../utils/litematicIsometric';
 
 interface SchematicItem {
   id?: string;
@@ -35,11 +48,12 @@ interface SchematicItem {
 
 interface LightboxState {
   item: SchematicItem;
-  images: string[];
+  manualImages: string[];
   index: number;
+  mode: 'iso' | 'photo';
 }
 
-function getSchematicImages(item: SchematicItem): string[] {
+function getManualImages(item: SchematicItem): string[] {
   const candidates = [
     item.image,
     item.imageUrl,
@@ -56,10 +70,19 @@ function getSchematicImages(item: SchematicItem): string[] {
   return Array.from(unique);
 }
 
+function isLitematicFile(url: string): boolean {
+  return url.toLowerCase().split('?')[0].endsWith('.litematic');
+}
+
 interface SchematicCardProps {
   item: SchematicItem;
   isIt: boolean;
-  onOpenLightbox: (item: SchematicItem, images: string[], index: number) => void;
+  onOpenLightbox: (
+    item: SchematicItem,
+    manualImages: string[],
+    index: number,
+    mode: 'iso' | 'photo'
+  ) => void;
 }
 
 const SchematicCard: React.FC<SchematicCardProps> = ({
@@ -67,52 +90,103 @@ const SchematicCard: React.FC<SchematicCardProps> = ({
   isIt,
   onOpenLightbox,
 }) => {
-  const images = useMemo(() => getSchematicImages(item), [item]);
+  const manualImages = useMemo(() => getManualImages(item), [item]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
+  const [autoIsoUrl, setAutoIsoUrl] = useState<string>('');
+  const [isoLoading, setIsoLoading] = useState<boolean>(false);
+  const [isVisible, setIsVisible] = useState<boolean>(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
-  const validImages = useMemo(
-    () => images.filter((src) => !failedUrls[src]),
-    [images, failedUrls]
+  const validManual = useMemo(
+    () => manualImages.filter((src) => !failedUrls[src]),
+    [manualImages, failedUrls]
   );
 
-  const safeIdx = validImages.length > 0 ? activeIdx % validImages.length : 0;
-  const activeSrc = validImages[safeIdx];
   const href = item.fileUrl || item.url || '#';
+  const canAutoRender = validManual.length === 0 && isLitematicFile(href);
+
+  // Lazy-trigger isometric generation only when card enters viewport
+  useEffect(() => {
+    if (!canAutoRender || isVisible) return;
+    const node = cardRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '250px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [canAutoRender, isVisible]);
+
+  useEffect(() => {
+    if (!canAutoRender || !isVisible) return;
+    let cancelled = false;
+    setIsoLoading(true);
+    getAutoIsometricPreviewUrl(href, parseLitematicFromUrl, 0)
+      .then((url) => {
+        if (!cancelled && url) setAutoIsoUrl(url);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsoLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canAutoRender, isVisible, href]);
+
+  const hasPhotoGallery = validManual.length > 0;
+  const safeIdx = hasPhotoGallery ? activeIdx % validManual.length : 0;
+  const displaySrc = hasPhotoGallery ? validManual[safeIdx] : autoIsoUrl;
+  const clickMode: 'iso' | 'photo' = hasPhotoGallery ? 'photo' : 'iso';
 
   const stepImage = (e: React.MouseEvent, delta: number) => {
     e.stopPropagation();
-    if (validImages.length <= 1) return;
-    setActiveIdx((prev) => (prev + delta + validImages.length) % validImages.length);
+    if (validManual.length <= 1) return;
+    setActiveIdx((prev) => (prev + delta + validManual.length) % validManual.length);
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-5 flex flex-col justify-between text-left hover:border-accent-orange/35 transition-all group">
+    <div
+      ref={cardRef}
+      className="glass-panel rounded-2xl p-5 flex flex-col justify-between text-left hover:border-accent-orange/35 transition-all group"
+    >
       <div>
-        {activeSrc ? (
+        {displaySrc ? (
           <div
-            onClick={() => onOpenLightbox(item, validImages, safeIdx)}
+            onClick={() => onOpenLightbox(item, validManual, safeIdx, clickMode)}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                onOpenLightbox(item, validImages, safeIdx);
+                onOpenLightbox(item, validManual, safeIdx, clickMode);
               }
             }}
-            className="aspect-[16/10] w-full rounded-xl overflow-hidden border border-white/10 mb-4 relative bg-[#12151B] cursor-pointer group/preview focus:outline-none focus:ring-2 focus:ring-accent-orange/60"
+            className="aspect-[16/10] w-full rounded-xl overflow-hidden border border-white/10 mb-4 relative bg-[#0D1015] cursor-pointer group/preview focus:outline-none focus:ring-2 focus:ring-accent-orange/60"
           >
             <img
-              src={activeSrc}
+              src={displaySrc}
               alt={item.name}
               loading="lazy"
-              onError={() =>
-                setFailedUrls((prev) => ({ ...prev, [activeSrc]: true }))
-              }
+              onError={() => {
+                if (hasPhotoGallery) {
+                  setFailedUrls((prev) => ({ ...prev, [displaySrc]: true }));
+                }
+              }}
               className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-105"
             />
 
-            <div className="absolute inset-0 bg-gradient-to-t from-[#101216]/80 via-transparent to-[#101216]/35 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#101216]/75 via-transparent to-[#101216]/25 pointer-events-none" />
 
             {/* Top Badges */}
             <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2 pointer-events-none">
@@ -120,10 +194,15 @@ const SchematicCard: React.FC<SchematicCardProps> = ({
                 {item.category && <Badge variant="neutral">{item.category}</Badge>}
               </div>
               <div className="flex items-center gap-1.5">
-                {validImages.length > 1 && (
+                {hasPhotoGallery && validManual.length > 1 && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-mono text-white px-2 py-0.5 rounded-md bg-[#101216]/80 backdrop-blur-md border border-white/15">
                     <Images className="w-3 h-3 text-accent-orange" />
-                    {safeIdx + 1}/{validImages.length}
+                    {safeIdx + 1}/{validManual.length}
+                  </span>
+                )}
+                {!hasPhotoGallery && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-sky-300 px-2 py-0.5 rounded-md bg-[#101216]/85 backdrop-blur-md border border-sky-400/25">
+                    ISO 3D
                   </span>
                 )}
                 {item.size && (
@@ -134,8 +213,7 @@ const SchematicCard: React.FC<SchematicCardProps> = ({
               </div>
             </div>
 
-            {/* Carousel Controls inside Preview if Multiple Images */}
-            {validImages.length > 1 && (
+            {hasPhotoGallery && validManual.length > 1 && (
               <>
                 <button
                   type="button"
@@ -157,9 +235,17 @@ const SchematicCard: React.FC<SchematicCardProps> = ({
             )}
 
             {/* Zoom Hint */}
-            <div className="absolute bottom-2.5 right-2.5 p-1.5 rounded-lg bg-[#101216]/75 border border-white/15 text-white/80 opacity-0 group-hover/preview:opacity-100 transition-opacity pointer-events-none">
-              <ZoomIn className="w-3.5 h-3.5" />
+            <div className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#101216]/80 border border-white/15 text-[11px] font-mono text-white/85 opacity-0 group-hover/preview:opacity-100 transition-opacity pointer-events-none">
+              <ZoomIn className="w-3.5 h-3.5 text-accent-orange" />
+              <span>{hasPhotoGallery ? (isIt ? 'Ingrandisci' : 'Zoom') : (isIt ? 'Vista 3D' : '3D View')}</span>
             </div>
+          </div>
+        ) : isoLoading ? (
+          <div className="aspect-[16/10] w-full rounded-xl overflow-hidden border border-white/10 mb-4 relative bg-[#0D1015] flex flex-col items-center justify-center gap-2">
+            <Box className="w-6 h-6 text-accent-orange animate-pulse" />
+            <span className="text-[11px] font-mono text-text-muted">
+              {isIt ? 'Rendering isometrico...' : 'Rendering isometric view...'}
+            </span>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2 mb-4">
@@ -230,31 +316,117 @@ interface SchematicLightboxProps {
   state: LightboxState | null;
   isIt: boolean;
   onClose: () => void;
-  onChangeIndex: (newIdx: number) => void;
+  onChangeState: (updater: (prev: LightboxState) => LightboxState) => void;
 }
+
+const ROTATION_LABELS = ['SE', 'SW', 'NW', 'NE'] as const;
 
 const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
   state,
   isIt,
   onClose,
-  onChangeIndex,
+  onChangeState,
 }) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ active: boolean; x: number; y: number }>({
+    active: false,
+    x: 0,
+    y: 0,
+  });
+
+  const [rotation, setRotation] = useState<IsoRotation>(0);
+  const [zoom, setZoom] = useState<number>(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [parsed, setParsed] = useState<ParsedLitematic | null>(null);
+
+  const href = state ? state.item.fileUrl || state.item.url || '#' : '';
+  const hasLitematic = state ? isLitematicFile(href) : false;
+
+  // Reset camera controls when opening a different schematic
+  useEffect(() => {
+    setRotation(0);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    setParsed(null);
+  }, [state?.item.id, state?.item.name]);
+
+  // Parse .litematic when needed in isometric mode
+  useEffect(() => {
+    if (!state || state.mode !== 'iso' || !hasLitematic) return;
+    let cancelled = false;
+    parseLitematicFromUrl(href)
+      .then((res) => {
+        if (!cancelled) setParsed(res);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [state?.mode, hasLitematic, href]);
+
+  // Re-render interactive canvas whenever parsed data, rotation, zoom, or pan changes
+  useEffect(() => {
+    if (!state || state.mode !== 'iso' || !parsed || !canvasRef.current) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    const w = Math.max(640, Math.round(rect?.width || 960));
+    const h = Math.max(400, Math.round(rect?.height || 560));
+    renderLitematicToCanvas(canvasRef.current, parsed, {
+      width: w,
+      height: h,
+      rotation,
+      zoom,
+      panX: pan.x,
+      panY: pan.y,
+      showWireframe: true,
+    });
+  }, [state?.mode, parsed, rotation, zoom, pan]);
+
+  // Mouse wheel zoom inside interactive isometric viewport
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !state || state.mode !== 'iso') return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.18 : 1 / 1.18;
+      setZoom((z) => {
+        const next = Math.min(12, Math.max(0.5, z * factor));
+        return Number(next.toFixed(2));
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [state?.mode, parsed]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!state) return;
       if (e.key === 'Escape') onClose();
-      if (state.images.length > 1) {
+      if (state.mode === 'photo' && state.manualImages.length > 1) {
         if (e.key === 'ArrowRight') {
-          onChangeIndex((state.index + 1) % state.images.length);
+          onChangeState((prev) => ({
+            ...prev,
+            index: (prev.index + 1) % prev.manualImages.length,
+          }));
         }
         if (e.key === 'ArrowLeft') {
-          onChangeIndex(
-            (state.index - 1 + state.images.length) % state.images.length
-          );
+          onChangeState((prev) => ({
+            ...prev,
+            index:
+              (prev.index - 1 + prev.manualImages.length) %
+              prev.manualImages.length,
+          }));
+        }
+      } else if (state.mode === 'iso') {
+        if (e.key === 'ArrowRight') {
+          setRotation((r) => ((r + 1) % 4) as IsoRotation);
+        }
+        if (e.key === 'ArrowLeft') {
+          setRotation((r) => ((r + 3) % 4) as IsoRotation);
         }
       }
     },
-    [state, onClose, onChangeIndex]
+    [state, onClose, onChangeState]
   );
 
   useEffect(() => {
@@ -272,22 +444,67 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
 
   if (!state) return null;
 
-  const { item, images, index } = state;
-  const currentSrc = images[index];
-  const href = item.fileUrl || item.url || '#';
+  const { item, manualImages, index, mode } = state;
+  const currentPhotoSrc = manualImages[index];
+
+  const handleSavePng = () => {
+    if (!canvasRef.current) return;
+    const link = document.createElement('a');
+    const baseName = (item.fileName || item.name).replace(/\.litematic$/i, '');
+    link.download = `${baseName}_iso_${ROTATION_LABELS[rotation]}.png`;
+    link.href = canvasRef.current.toDataURL('image/png');
+    link.click();
+  };
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0D10]/92 backdrop-blur-2xl p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0D10]/92 backdrop-blur-2xl p-3 sm:p-6"
       onClick={onClose}
     >
       {/* Top Bar */}
-      <div className="absolute top-5 left-5 right-5 flex items-center justify-between z-20 pointer-events-none">
-        <span className="px-3.5 py-1.5 rounded-full glass-panel text-xs font-mono text-text-secondary pointer-events-auto">
-          {index + 1} / {images.length}
-        </span>
+      <div className="fixed top-4 left-4 right-4 flex items-center justify-between z-20 pointer-events-none">
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {hasLitematic && manualImages.length > 0 && (
+            <div className="inline-flex items-center p-1 rounded-xl glass-panel">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChangeState((prev) => ({ ...prev, mode: 'iso' }));
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-mono cursor-pointer transition-colors ${
+                  mode === 'iso'
+                    ? 'bg-accent-orange text-[#101216] font-bold'
+                    : 'text-text-secondary hover:text-white'
+                }`}
+              >
+                ISO 3D
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChangeState((prev) => ({ ...prev, mode: 'photo' }));
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-mono cursor-pointer transition-colors ${
+                  mode === 'photo'
+                    ? 'bg-accent-orange text-[#101216] font-bold'
+                    : 'text-text-secondary hover:text-white'
+                }`}
+              >
+                {isIt ? 'Foto' : 'Photos'}
+              </button>
+            </div>
+          )}
+
+          {mode === 'photo' && (
+            <span className="px-3.5 py-1.5 rounded-full glass-panel text-xs font-mono text-text-secondary">
+              {index + 1} / {manualImages.length}
+            </span>
+          )}
+        </div>
 
         <button
           type="button"
@@ -302,17 +519,22 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
         </button>
       </div>
 
-      {/* Navigation Arrows */}
-      {images.length > 1 && (
+      {/* Photo Navigation Arrows */}
+      {mode === 'photo' && manualImages.length > 1 && (
         <>
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onChangeIndex((index - 1 + images.length) % images.length);
+              onChangeState((prev) => ({
+                ...prev,
+                index:
+                  (prev.index - 1 + prev.manualImages.length) %
+                  prev.manualImages.length,
+              }));
             }}
             aria-label={isIt ? 'Precedente' : 'Previous'}
-            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 p-3 rounded-xl glass-panel text-text-secondary hover:text-white transition-colors cursor-pointer"
+            className="fixed left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 p-3 rounded-xl glass-panel text-text-secondary hover:text-white transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -321,28 +543,151 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onChangeIndex((index + 1) % images.length);
+              onChangeState((prev) => ({
+                ...prev,
+                index: (prev.index + 1) % prev.manualImages.length,
+              }));
             }}
             aria-label={isIt ? 'Successiva' : 'Next'}
-            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 p-3 rounded-xl glass-panel text-text-secondary hover:text-white transition-colors cursor-pointer"
+            className="fixed right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 p-3 rounded-xl glass-panel text-text-secondary hover:text-white transition-colors cursor-pointer"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
         </>
       )}
 
-      {/* Modal Content */}
+      {/* Main Dialog Card */}
       <div
         className="relative w-full max-w-5xl z-10 glass-panel rounded-2xl p-3 sm:p-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-full rounded-xl overflow-hidden bg-[#0B0D10] flex items-center justify-center">
-          <img
-            src={currentSrc}
-            alt={item.name}
-            className="max-h-[70vh] w-full object-contain"
-          />
-        </div>
+        {mode === 'iso' ? (
+          <div>
+            <div
+              ref={containerRef}
+              onMouseDown={(e) => {
+                dragRef.current = { active: true, x: e.clientX, y: e.clientY };
+              }}
+              onMouseMove={(e) => {
+                if (!dragRef.current.active) return;
+                const dx = e.clientX - dragRef.current.x;
+                const dy = e.clientY - dragRef.current.y;
+                dragRef.current.x = e.clientX;
+                dragRef.current.y = e.clientY;
+                setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+              }}
+              onMouseUp={() => {
+                dragRef.current.active = false;
+              }}
+              onMouseLeave={() => {
+                dragRef.current.active = false;
+              }}
+              onTouchStart={(e) => {
+                if (e.touches.length === 1) {
+                  dragRef.current = {
+                    active: true,
+                    x: e.touches[0].clientX,
+                    y: e.touches[0].clientY,
+                  };
+                }
+              }}
+              onTouchMove={(e) => {
+                if (!dragRef.current.active || e.touches.length !== 1) return;
+                const dx = e.touches[0].clientX - dragRef.current.x;
+                const dy = e.touches[0].clientY - dragRef.current.y;
+                dragRef.current.x = e.touches[0].clientX;
+                dragRef.current.y = e.touches[0].clientY;
+                setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+              }}
+              onTouchEnd={() => {
+                dragRef.current.active = false;
+              }}
+              className="w-full h-[54vh] sm:h-[62vh] rounded-xl overflow-hidden bg-[#0D1015] border border-white/10 relative select-none touch-none cursor-grab active:cursor-grabbing flex items-center justify-center"
+            >
+              {parsed ? (
+                <canvas ref={canvasRef} className="w-full h-full block" />
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-text-muted">
+                  <Box className="w-8 h-8 text-accent-orange animate-pulse" />
+                  <span className="text-xs font-mono">
+                    {isIt
+                      ? 'Generazione vista isometrica da .litematic...'
+                      : 'Generating isometric view from .litematic...'}
+                  </span>
+                </div>
+              )}
+
+              {/* Isometric Controls Bar */}
+              <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+                <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#101216]/85 backdrop-blur-md border border-white/15 pointer-events-auto">
+                  {ROTATION_LABELS.map((label, rIdx) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setRotation(rIdx as IsoRotation)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-mono cursor-pointer transition-colors ${
+                        rotation === rIdx
+                          ? 'bg-accent-orange text-[#101216] font-bold'
+                          : 'text-text-secondary hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setRotation((r) => ((r + 1) % 4) as IsoRotation)}
+                    title={isIt ? 'Ruota 90°' : 'Rotate 90°'}
+                    className="p-1.5 rounded-lg text-text-secondary hover:text-white cursor-pointer"
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#101216]/85 backdrop-blur-md border border-white/15 pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={() => setZoom((z) => Math.max(0.5, Number((z / 1.4).toFixed(2))))}
+                    aria-label="Zoom out"
+                    className="p-1.5 rounded-lg text-text-secondary hover:text-white cursor-pointer"
+                  >
+                    <ZoomOut className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="px-2 text-[11px] font-mono text-text-primary">
+                    {zoom.toFixed(1)}x
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setZoom((z) => Math.min(12, Number((z * 1.4).toFixed(2))))}
+                    aria-label="Zoom in"
+                    className="p-1.5 rounded-lg text-text-secondary hover:text-white cursor-pointer"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setZoom(1);
+                      setPan({ x: 0, y: 0 });
+                    }}
+                    title="Reset"
+                    className="p-1.5 rounded-lg text-text-secondary hover:text-white cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full rounded-xl overflow-hidden bg-[#0B0D10] flex items-center justify-center">
+            <img
+              src={currentPhotoSrc}
+              alt={item.name}
+              className="max-h-[68vh] w-full object-contain"
+            />
+          </div>
+        )}
 
         <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
           <div className="text-left">
@@ -365,14 +710,27 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
             </div>
           </div>
 
-          <a
-            href={href}
-            download={item.fileName || true}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent-orange text-[#101216] font-heading font-semibold text-xs sm:text-sm hover:bg-accent-orange-hover transition-all shrink-0"
-          >
-            <Download className="w-4 h-4" />
-            <span>{isIt ? 'Scarica .litematic' : 'Download .litematic'}</span>
-          </a>
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {mode === 'iso' && parsed && (
+              <button
+                type="button"
+                onClick={handleSavePng}
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/15 text-text-primary hover:border-accent-orange/60 font-heading font-medium text-xs sm:text-sm transition-all cursor-pointer"
+              >
+                <ImageIcon className="w-4 h-4 text-accent-orange" />
+                <span>{isIt ? 'Salva PNG' : 'Save PNG'}</span>
+              </button>
+            )}
+
+            <a
+              href={href}
+              download={item.fileName || true}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent-orange text-[#101216] font-heading font-semibold text-xs sm:text-sm hover:bg-accent-orange-hover transition-all"
+            >
+              <Download className="w-4 h-4" />
+              <span>{isIt ? 'Scarica .litematic' : 'Download .litematic'}</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -433,8 +791,8 @@ export const ArchivePage: React.FC = () => {
             </h1>
             <p className="mt-3 text-sm sm:text-base text-text-secondary leading-relaxed">
               {isIt
-                ? 'Raccolta ufficiale delle schematics .litematic sincronizzate dal server Fermium SMP (World Eater, Trencher, Perimeter Tech e Storage).'
-                : 'Official collection of .litematic schematics synced from the Fermium SMP server (World Eaters, Trenchers, Perimeter Tech, and Storage).'}
+                ? 'Anteprima isometrica automatica generata dai file .litematic del server Fermium SMP. Clicca su qualsiasi schematic per ruotarla ed ispezionarla.'
+                : 'Automatic isometric previews generated directly from Fermium SMP .litematic files. Click any schematic to rotate and inspect it.'}
             </p>
           </div>
 
@@ -487,8 +845,8 @@ export const ArchivePage: React.FC = () => {
                 key={item.id || idx}
                 item={item}
                 isIt={isIt}
-                onOpenLightbox={(targetItem, images, index) =>
-                  setLightbox({ item: targetItem, images, index })
+                onOpenLightbox={(targetItem, manualImages, index, mode) =>
+                  setLightbox({ item: targetItem, manualImages, index, mode })
                 }
               />
             ))}
@@ -514,8 +872,8 @@ export const ArchivePage: React.FC = () => {
         state={lightbox}
         isIt={isIt}
         onClose={() => setLightbox(null)}
-        onChangeIndex={(newIdx) =>
-          setLightbox((prev) => (prev ? { ...prev, index: newIdx } : null))
+        onChangeState={(updater) =>
+          setLightbox((prev) => (prev ? updater(prev) : null))
         }
       />
     </div>
