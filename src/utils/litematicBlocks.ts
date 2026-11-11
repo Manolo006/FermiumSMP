@@ -1,10 +1,71 @@
+export type BlockShapeKind =
+  | 'cube'
+  | 'jelly' // slime / honey with inner solid core
+  | 'glass' // crisp Minecraft frame + glint
+  | 'hopper' // stepped funnel
+  | 'chest' // slightly inset + clasp
+  | 'slab' // half height (supports top or bottom)
+  | 'stairs' // L-shaped 3D stair
+  | 'plate' // low height (repeater/comparator/carpet/pressure plate)
+  | 'rail' // thin track stripes
+  | 'wire' // redstone dust flat network
+  | 'torch' // thin vertical rod + glowing tip
+  | 'pane' // thin vertical glass/fence/wall/door
+  | 'fluid';
+
+export type TexturePattern =
+  | 'solid'
+  | 'stone'
+  | 'cobble'
+  | 'deepslate'
+  | 'smooth_stone'
+  | 'obsidian'
+  | 'planks'
+  | 'log'
+  | 'leaves'
+  | 'concrete'
+  | 'terracotta'
+  | 'wool'
+  | 'glazed'
+  | 'glass'
+  | 'packed_ice'
+  | 'slime'
+  | 'honey'
+  | 'redstone_block'
+  | 'redstone_lamp'
+  | 'tnt'
+  | 'observer'
+  | 'piston'
+  | 'sticky_piston'
+  | 'dropper'
+  | 'chest'
+  | 'ender_chest'
+  | 'barrel'
+  | 'hopper'
+  | 'note_block'
+  | 'target'
+  | 'shulker'
+  | 'emerald'
+  | 'glowstone'
+  | 'copper'
+  | 'scaffolding'
+  | 'nether_portal'
+  | 'water';
+
+export type BlockFacing = 'north' | 'south' | 'east' | 'west' | 'up' | 'down' | 'none';
+
 export interface BlockVisualStyle {
   r: number;
   g: number;
   b: number;
-  alpha: number; // 0..1
-  heightScale: number; // 1 = full cube, 0.5 = slab, 0.25 = plate/repeater/rail
+  alpha: number;
+  heightScale: number;
+  isTopHalf: boolean;
   isOpaque: boolean;
+  shape: BlockShapeKind;
+  pattern: TexturePattern;
+  facing: BlockFacing;
+  lit: boolean;
 }
 
 const DYE_COLORS: Record<string, [number, number, number]> = {
@@ -15,114 +76,99 @@ const DYE_COLORS: Record<string, [number, number, number]> = {
   yellow: [244, 204, 48],
   lime: [118, 198, 42],
   pink: [232, 120, 160],
-  gray: [76, 82, 87],
-  light_gray: [148, 152, 150],
-  cyan: [36, 146, 162],
-  purple: [130, 56, 178],
-  blue: [54, 72, 175],
-  brown: [122, 78, 48],
-  green: [86, 118, 36],
-  red: [168, 42, 36],
-  black: [34, 36, 42],
+  gray: [84, 90, 96],
+  light_gray: [152, 156, 154],
+  cyan: [36, 148, 164],
+  purple: [134, 58, 182],
+  blue: [58, 78, 184],
+  brown: [126, 82, 50],
+  green: [88, 122, 38],
+  red: [174, 44, 38],
+  black: [42, 44, 52],
 };
 
 const EXACT_COLORS: Record<string, [number, number, number, number?, number?]> = {
-  // Slime & Honey (signature TMC flying machines)
-  slime_block: [112, 206, 84, 0.9, 1],
-  honey_block: [242, 172, 46, 0.9, 1],
-
-  // Redstone Components
-  redstone_block: [178, 32, 18, 1, 1],
-  redstone_lamp: [116, 68, 40, 1, 1],
-  redstone_wire: [212, 36, 24, 1, 0.14],
-  redstone_torch: [235, 58, 32, 1, 0.6],
-  redstone_wall_torch: [235, 58, 32, 1, 0.6],
-  repeater: [162, 162, 166, 1, 0.22],
-  comparator: [158, 154, 162, 1, 0.22],
-  observer: [72, 74, 80, 1, 1],
-  dispenser: [128, 130, 134, 1, 1],
-  dropper: [134, 136, 140, 1, 1],
-  piston: [178, 142, 90, 1, 1],
-  sticky_piston: [134, 182, 92, 1, 1],
-  piston_head: [188, 150, 96, 1, 0.5],
-  hopper: [74, 78, 86, 1, 0.85],
-  note_block: [112, 70, 52, 1, 1],
-  target: [218, 198, 186, 1, 1],
-  tnt: [212, 54, 42, 1, 1],
-  lever: [128, 118, 102, 1, 0.35],
-  lightning_rod: [198, 118, 86, 1, 0.85],
-  light_weighted_pressure_plate: [236, 198, 62, 1, 0.16],
-
-  // Rails
-  rail: [154, 142, 122, 1, 0.14],
-  powered_rail: [204, 84, 52, 1, 0.14],
-  detector_rail: [178, 72, 60, 1, 0.14],
-  activator_rail: [168, 76, 66, 1, 0.14],
-
-  // Storage & Utility
-  chest: [174, 124, 54, 1, 0.88],
-  trapped_chest: [176, 118, 52, 1, 0.88],
-  ender_chest: [34, 42, 56, 1, 0.88],
-  barrel: [142, 106, 64, 1, 1],
-  shulker_box: [144, 96, 148, 1, 1],
-  composter: [132, 96, 56, 1, 1],
-  stonecutter: [136, 138, 140, 1, 0.65],
-  scaffolding: [216, 180, 98, 0.82, 1],
-
-  // Structural / Stone / Obsidian
-  obsidian: [32, 22, 48, 1, 1],
-  crying_obsidian: [46, 26, 78, 1, 1],
-  stone: [128, 130, 134, 1, 1],
-  cobblestone: [122, 124, 126, 1, 1],
-  smooth_stone: [158, 160, 164, 1, 1],
-  smooth_stone_slab: [158, 160, 164, 1, 0.5],
-  dirt: [134, 96, 66, 1, 1],
-  grass_block: [104, 156, 74, 1, 1],
-  mud: [60, 56, 60, 1, 1],
-  soul_sand: [82, 64, 52, 1, 1],
-  soul_soil: [74, 58, 48, 1, 1],
-  moss_block: [96, 126, 54, 1, 1],
-  melon: [122, 152, 42, 1, 1],
-  jack_o_lantern: [218, 136, 38, 1, 1],
-
-  // Ice, Glass & Fluids
-  glass: [184, 224, 246, 0.42, 1],
-  tinted_glass: [48, 42, 58, 0.65, 1],
-  packed_ice: [142, 182, 242, 0.92, 1],
-  blue_ice: [116, 164, 246, 0.94, 1],
-  ice: [152, 196, 250, 0.65, 1],
-  water: [46, 112, 226, 0.52, 0.9],
-  bubble_column: [72, 146, 244, 0.5, 0.9],
-  lava: [240, 102, 26, 0.95, 0.9],
-  nether_portal: [134, 52, 232, 0.72, 1],
-  soul_fire: [64, 212, 232, 0.8, 0.55],
-  fire: [244, 144, 34, 0.85, 0.55],
-
-  // Lighting & Metals
-  glowstone: [232, 188, 96, 1, 1],
-  shroomlight: [242, 152, 74, 1, 1],
-  sea_lantern: [176, 218, 212, 1, 1],
-  emerald_block: [58, 206, 106, 1, 1],
-  iron_block: [220, 222, 226, 1, 1],
-  gold_block: [244, 204, 56, 1, 1],
-  diamond_block: [98, 226, 220, 1, 1],
-  netherite_block: [68, 62, 66, 1, 1],
-  iron_door: [210, 214, 218, 1, 1],
-  iron_trapdoor: [210, 214, 218, 1, 0.2],
-  oxidized_copper_bulb: [84, 158, 134, 1, 1],
-
-  // Foliage & Nether
-  oak_leaves: [78, 136, 56, 0.92, 1],
-  spruce_leaves: [58, 98, 56, 0.92, 1],
-  birch_leaves: [104, 148, 72, 0.92, 1],
-  jungle_leaves: [72, 148, 48, 0.92, 1],
-  acacia_leaves: [86, 138, 48, 0.92, 1],
-  dark_oak_leaves: [64, 112, 46, 0.92, 1],
-  cherry_leaves: [238, 166, 198, 0.92, 1],
-  nether_wart_block: [122, 22, 26, 1, 1],
-  warped_wart_block: [26, 122, 118, 1, 1],
-  crimson_stem: [112, 44, 66, 1, 1],
-  warped_stem: [46, 114, 114, 1, 1],
+  slime_block: [114, 208, 84, 0.84, 1],
+  honey_block: [242, 174, 48, 0.86, 1],
+  redstone_block: [182, 34, 20, 1, 1],
+  redstone_lamp: [118, 70, 42, 1, 1],
+  redstone_wire: [222, 40, 26, 1, 0.1],
+  redstone_torch: [240, 62, 34, 1, 0.65],
+  redstone_wall_torch: [240, 62, 34, 1, 0.65],
+  repeater: [164, 164, 168, 1, 0.18],
+  comparator: [160, 156, 164, 1, 0.18],
+  observer: [78, 82, 90, 1, 1],
+  dispenser: [130, 132, 136, 1, 1],
+  dropper: [136, 138, 142, 1, 1],
+  piston: [182, 144, 92, 1, 1],
+  sticky_piston: [134, 184, 92, 1, 1],
+  piston_head: [188, 150, 96, 1, 0.48],
+  hopper: [78, 84, 94, 1, 1],
+  note_block: [116, 72, 54, 1, 1],
+  target: [222, 202, 188, 1, 1],
+  tnt: [214, 54, 42, 1, 1],
+  lever: [134, 124, 108, 1, 0.35],
+  lightning_rod: [202, 122, 88, 1, 0.85],
+  light_weighted_pressure_plate: [238, 202, 64, 1, 0.12],
+  rail: [158, 146, 126, 1, 0.1],
+  powered_rail: [210, 86, 52, 1, 0.1],
+  detector_rail: [182, 74, 62, 1, 0.1],
+  activator_rail: [172, 78, 68, 1, 0.1],
+  chest: [176, 126, 54, 1, 0.88],
+  trapped_chest: [178, 120, 52, 1, 0.88],
+  ender_chest: [40, 48, 66, 1, 0.88],
+  barrel: [144, 108, 66, 1, 1],
+  shulker_box: [146, 98, 152, 1, 1],
+  composter: [134, 98, 58, 1, 1],
+  stonecutter: [138, 140, 144, 1, 0.65],
+  scaffolding: [218, 182, 98, 0.86, 1],
+  obsidian: [44, 32, 66, 1, 1],
+  crying_obsidian: [56, 36, 92, 1, 1],
+  stone: [132, 134, 138, 1, 1],
+  cobblestone: [124, 126, 130, 1, 1],
+  smooth_stone: [160, 162, 166, 1, 1],
+  smooth_stone_slab: [160, 162, 166, 1, 0.5],
+  dirt: [136, 98, 68, 1, 1],
+  grass_block: [106, 158, 76, 1, 1],
+  mud: [68, 64, 70, 1, 1],
+  soul_sand: [88, 68, 56, 1, 1],
+  soul_soil: [80, 62, 52, 1, 1],
+  moss_block: [98, 128, 56, 1, 1],
+  melon: [124, 154, 44, 1, 1],
+  jack_o_lantern: [222, 138, 38, 1, 1],
+  glass: [188, 228, 248, 0.45, 1],
+  tinted_glass: [58, 52, 70, 0.68, 1],
+  packed_ice: [144, 184, 244, 0.94, 1],
+  blue_ice: [118, 166, 248, 0.95, 1],
+  ice: [154, 198, 252, 0.68, 1],
+  water: [48, 114, 230, 0.55, 0.9],
+  bubble_column: [74, 148, 246, 0.52, 0.9],
+  lava: [242, 104, 28, 0.95, 0.9],
+  nether_portal: [138, 56, 236, 0.74, 1],
+  soul_fire: [66, 214, 234, 0.82, 0.55],
+  fire: [246, 146, 36, 0.85, 0.55],
+  glowstone: [236, 192, 98, 1, 1],
+  shroomlight: [244, 154, 76, 1, 1],
+  sea_lantern: [178, 220, 214, 1, 1],
+  emerald_block: [60, 208, 108, 1, 1],
+  iron_block: [222, 224, 228, 1, 1],
+  gold_block: [246, 206, 58, 1, 1],
+  diamond_block: [100, 228, 222, 1, 1],
+  netherite_block: [74, 68, 74, 1, 1],
+  iron_door: [212, 216, 220, 1, 1],
+  iron_trapdoor: [212, 216, 220, 1, 0.2],
+  oxidized_copper_bulb: [86, 160, 136, 1, 1],
+  oak_leaves: [80, 138, 58, 0.94, 1],
+  spruce_leaves: [60, 102, 58, 0.94, 1],
+  birch_leaves: [106, 150, 74, 0.94, 1],
+  jungle_leaves: [74, 150, 50, 0.94, 1],
+  acacia_leaves: [88, 140, 50, 0.94, 1],
+  dark_oak_leaves: [66, 114, 48, 0.94, 1],
+  cherry_leaves: [240, 168, 200, 0.94, 1],
+  nether_wart_block: [126, 26, 30, 1, 1],
+  warped_wart_block: [28, 126, 122, 1, 1],
+  crimson_stem: [116, 46, 68, 1, 1],
+  warped_stem: [48, 118, 118, 1, 1],
 };
 
 function findDyePrefix(name: string): [number, number, number] | null {
@@ -135,11 +181,91 @@ function findDyePrefix(name: string): [number, number, number] | null {
   return null;
 }
 
+function detectShapeAndPattern(
+  name: string,
+  heightScale: number
+): { shape: BlockShapeKind; pattern: TexturePattern } {
+  if (name === 'slime_block') return { shape: 'jelly', pattern: 'slime' };
+  if (name === 'honey_block') return { shape: 'jelly', pattern: 'honey' };
+  if (name === 'hopper') return { shape: 'hopper', pattern: 'hopper' };
+  if (name === 'chest' || name === 'trapped_chest') return { shape: 'chest', pattern: 'chest' };
+  if (name === 'ender_chest') return { shape: 'chest', pattern: 'ender_chest' };
+  if (name === 'redstone_wire') return { shape: 'wire', pattern: 'solid' };
+  if (name === 'redstone_torch' || name === 'redstone_wall_torch') {
+    return { shape: 'torch', pattern: 'solid' };
+  }
+  if (name === 'repeater' || name === 'comparator') {
+    return { shape: 'plate', pattern: 'smooth_stone' };
+  }
+  if (name.endsWith('rail')) return { shape: 'rail', pattern: 'solid' };
+  if (name.includes('stairs')) return { shape: 'stairs', pattern: name.includes('deepslate') ? 'deepslate' : 'stone' };
+  if (name.includes('slab')) return { shape: 'slab', pattern: 'smooth_stone' };
+  if (name.includes('glass_pane') || name.includes('wall') || name.includes('fence') || name.includes('door')) {
+    return {
+      shape: name.includes('stained_glass_pane') || name.includes('glass_pane') ? 'glass' : 'pane',
+      pattern: name.includes('glass') ? 'glass' : 'stone',
+    };
+  }
+  if (name.includes('glass')) return { shape: 'glass', pattern: 'glass' };
+  if (name === 'water' || name === 'bubble_column' || name === 'lava' || name === 'nether_portal') {
+    return { shape: 'fluid', pattern: name === 'nether_portal' ? 'nether_portal' : 'water' };
+  }
+  if (heightScale < 0.45) return { shape: 'plate', pattern: 'solid' };
+
+  if (name === 'observer') return { shape: 'cube', pattern: 'observer' };
+  if (name === 'piston') return { shape: 'cube', pattern: 'piston' };
+  if (name === 'sticky_piston') return { shape: 'cube', pattern: 'sticky_piston' };
+  if (name === 'dispenser' || name === 'dropper') return { shape: 'cube', pattern: 'dropper' };
+  if (name === 'tnt') return { shape: 'cube', pattern: 'tnt' };
+  if (name === 'redstone_block') return { shape: 'cube', pattern: 'redstone_block' };
+  if (name === 'redstone_lamp') return { shape: 'cube', pattern: 'redstone_lamp' };
+  if (name === 'barrel') return { shape: 'cube', pattern: 'barrel' };
+  if (name === 'note_block') return { shape: 'cube', pattern: 'note_block' };
+  if (name === 'target') return { shape: 'cube', pattern: 'target' };
+  if (name === 'packed_ice' || name === 'blue_ice' || name === 'ice') {
+    return { shape: 'cube', pattern: 'packed_ice' };
+  }
+  if (name === 'emerald_block') return { shape: 'cube', pattern: 'emerald' };
+  if (name === 'glowstone' || name === 'shroomlight' || name === 'sea_lantern') {
+    return { shape: 'cube', pattern: 'glowstone' };
+  }
+  if (name === 'scaffolding') return { shape: 'cube', pattern: 'scaffolding' };
+  if (name.includes('shulker_box')) return { shape: 'cube', pattern: 'shulker' };
+  if (name.includes('leaves')) return { shape: 'cube', pattern: 'leaves' };
+  if (name.includes('glazed_terracotta')) return { shape: 'cube', pattern: 'glazed' };
+  if (name.includes('terracotta')) return { shape: 'cube', pattern: 'terracotta' };
+  if (name.includes('concrete')) return { shape: 'cube', pattern: 'concrete' };
+  if (name.includes('wool')) return { shape: 'cube', pattern: 'wool' };
+  if (name.includes('obsidian')) return { shape: 'cube', pattern: 'obsidian' };
+  if (name.includes('deepslate')) return { shape: 'cube', pattern: 'deepslate' };
+  if (name.includes('smooth_stone')) return { shape: 'cube', pattern: 'smooth_stone' };
+  if (name.includes('cobble')) return { shape: 'cube', pattern: 'cobble' };
+  if (name === 'stone' || name.includes('stone_brick')) return { shape: 'cube', pattern: 'stone' };
+  if (name.includes('copper')) return { shape: 'cube', pattern: 'copper' };
+  if (name.includes('log') || name.includes('stem')) return { shape: 'cube', pattern: 'log' };
+  if (name.includes('planks') || name.includes('composter') || name.includes('oak') || name.includes('birch') || name.includes('spruce')) {
+    return { shape: 'cube', pattern: 'planks' };
+  }
+
+  return { shape: 'cube', pattern: 'stone' };
+}
+
 const styleCache = new Map<string, BlockVisualStyle>();
 
-export function getBlockVisualStyle(rawName: string): BlockVisualStyle {
+export function getBlockVisualStyle(
+  rawName: string,
+  props?: Record<string, string>
+): BlockVisualStyle {
   const name = rawName.replace('minecraft:', '');
-  const cached = styleCache.get(name);
+  const facingRaw = (props?.facing || 'none') as BlockFacing;
+  const facing: BlockFacing = ['north', 'south', 'east', 'west', 'up', 'down'].includes(facingRaw)
+    ? facingRaw
+    : 'none';
+  const isTopHalf = props?.type === 'top' || props?.half === 'top';
+  const lit = props?.lit === 'true' || props?.powered === 'true';
+
+  const cacheKey = `${name}|${facing}|${isTopHalf ? 'T' : 'B'}|${lit ? '1' : '0'}`;
+  const cached = styleCache.get(cacheKey);
   if (cached) return cached;
 
   let r = 136;
@@ -155,67 +281,79 @@ export function getBlockVisualStyle(rawName: string): BlockVisualStyle {
     b = exact[2];
     alpha = exact[3] ?? 1;
     heightScale = exact[4] ?? 1;
+    if (name === 'redstone_lamp' && lit) {
+      r = 246;
+      g = 194;
+      b = 98;
+    }
   } else {
     const dye = findDyePrefix(name);
     if (name.includes('stained_glass_pane')) {
-      const c = dye || [180, 210, 232];
+      const c = dye || [184, 214, 236];
       r = c[0];
       g = c[1];
       b = c[2];
-      alpha = 0.42;
+      alpha = 0.45;
     } else if (name.includes('stained_glass')) {
-      const c = dye || [180, 210, 232];
+      const c = dye || [184, 214, 236];
       r = c[0];
       g = c[1];
       b = c[2];
-      alpha = 0.46;
+      alpha = 0.48;
     } else if (name.includes('shulker_box')) {
-      const c = dye || [144, 96, 148];
+      const c = dye || [146, 98, 152];
       r = c[0];
       g = c[1];
       b = c[2];
     } else if (name.includes('concrete') || name.includes('wool')) {
-      const c = dye || [180, 184, 188];
+      const c = dye || [184, 188, 192];
       r = c[0];
       g = c[1];
       b = c[2];
     } else if (name.includes('terracotta')) {
-      const c = dye || [152, 98, 78];
-      r = Math.round(c[0] * 0.85 + 22);
-      g = Math.round(c[1] * 0.78 + 18);
-      b = Math.round(c[2] * 0.72 + 14);
+      const c = dye || [154, 100, 80];
+      r = Math.round(c[0] * 0.85 + 24);
+      g = Math.round(c[1] * 0.78 + 20);
+      b = Math.round(c[2] * 0.72 + 16);
     } else if (name.includes('carpet')) {
-      const c = dye || [140, 144, 148];
+      const c = dye || [144, 148, 152];
       r = c[0];
       g = c[1];
       b = c[2];
       heightScale = 0.14;
     } else if (name.includes('coral_wall_fan')) {
-      r = 128;
-      g = 124;
-      b = 120;
+      r = 132;
+      g = 128;
+      b = 124;
       heightScale = 0.35;
     } else if (name.includes('deepslate')) {
-      r = 76;
-      g = 78;
-      b = 84;
+      r = 82;
+      g = 86;
+      b = 92;
     } else if (name.includes('stone_brick')) {
-      r = 124;
-      g = 126;
-      b = 130;
-    } else if (name.includes('oak') || name.includes('birch') || name.includes('spruce') || name.includes('jungle') || name.includes('acacia') || name.includes('cherry')) {
-      r = name.includes('birch') ? 202 : name.includes('spruce') ? 106 : name.includes('cherry') ? 216 : 158;
-      g = name.includes('birch') ? 186 : name.includes('spruce') ? 78 : name.includes('cherry') ? 156 : 124;
-      b = name.includes('birch') ? 136 : name.includes('spruce') ? 48 : name.includes('cherry') ? 162 : 76;
+      r = 128;
+      g = 130;
+      b = 134;
+    } else if (
+      name.includes('oak') ||
+      name.includes('birch') ||
+      name.includes('spruce') ||
+      name.includes('jungle') ||
+      name.includes('acacia') ||
+      name.includes('cherry')
+    ) {
+      r = name.includes('birch') ? 204 : name.includes('spruce') ? 112 : name.includes('cherry') ? 218 : 162;
+      g = name.includes('birch') ? 188 : name.includes('spruce') ? 82 : name.includes('cherry') ? 158 : 126;
+      b = name.includes('birch') ? 138 : name.includes('spruce') ? 52 : name.includes('cherry') ? 164 : 78;
     } else if (name.includes('leaves')) {
-      r = 76;
-      g = 134;
-      b = 58;
-      alpha = 0.92;
+      r = 78;
+      g = 138;
+      b = 60;
+      alpha = 0.94;
     } else if (name.includes('copper')) {
-      r = name.includes('oxidized') ? 84 : name.includes('weathered') ? 108 : 190;
-      g = name.includes('oxidized') ? 158 : name.includes('weathered') ? 148 : 112;
-      b = name.includes('oxidized') ? 134 : name.includes('weathered') ? 116 : 82;
+      r = name.includes('oxidized') ? 86 : name.includes('weathered') ? 112 : 194;
+      g = name.includes('oxidized') ? 160 : name.includes('weathered') ? 152 : 114;
+      b = name.includes('oxidized') ? 136 : name.includes('weathered') ? 118 : 84;
     }
 
     if (name.includes('slab')) heightScale = 0.5;
@@ -226,14 +364,21 @@ export function getBlockVisualStyle(rawName: string): BlockVisualStyle {
     else if (name.includes('wall')) heightScale = 0.88;
   }
 
+  const { shape, pattern } = detectShapeAndPattern(name, heightScale);
+
   const style: BlockVisualStyle = {
     r,
     g,
     b,
     alpha,
     heightScale,
-    isOpaque: alpha >= 0.99 && heightScale >= 0.99,
+    isTopHalf,
+    isOpaque: alpha >= 0.99 && heightScale >= 0.99 && shape === 'cube',
+    shape,
+    pattern,
+    facing,
+    lit,
   };
-  styleCache.set(name, style);
+  styleCache.set(cacheKey, style);
   return style;
 }

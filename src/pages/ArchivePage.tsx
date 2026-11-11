@@ -8,6 +8,7 @@ import {
   FileCode2,
   Image as ImageIcon,
   Images,
+  Layers,
   Maximize2,
   RotateCcw,
   RotateCw,
@@ -338,6 +339,7 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
   const [rotation, setRotation] = useState<IsoRotation>(0);
   const [zoom, setZoom] = useState<number>(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [sliceY, setSliceY] = useState<number | null>(null);
   const [parsed, setParsed] = useState<ParsedLitematic | null>(null);
 
   const href = state ? state.item.fileUrl || state.item.url || '#' : '';
@@ -348,6 +350,7 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
     setRotation(0);
     setZoom(1);
     setPan({ x: 0, y: 0 });
+    setSliceY(null);
     setParsed(null);
   }, [state?.item.id, state?.item.name]);
 
@@ -357,7 +360,10 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
     let cancelled = false;
     parseLitematicFromUrl(href)
       .then((res) => {
-        if (!cancelled) setParsed(res);
+        if (!cancelled) {
+          setParsed(res);
+          setSliceY(res.sizeY - 1);
+        }
       })
       .catch(() => {});
     return () => {
@@ -365,7 +371,7 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
     };
   }, [state?.mode, hasLitematic, href]);
 
-  // Re-render interactive canvas whenever parsed data, rotation, zoom, or pan changes
+  // Re-render interactive canvas whenever parsed data, rotation, zoom, pan, or Y slice changes
   useEffect(() => {
     if (!state || state.mode !== 'iso' || !parsed || !canvasRef.current) return;
     const rect = containerRef.current?.getBoundingClientRect();
@@ -378,9 +384,10 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
       zoom,
       panX: pan.x,
       panY: pan.y,
+      maxY: sliceY ?? parsed.sizeY - 1,
       showWireframe: true,
     });
-  }, [state?.mode, parsed, rotation, zoom, pan]);
+  }, [state?.mode, parsed, rotation, zoom, pan, sliceY]);
 
   // Mouse wheel zoom inside interactive isometric viewport
   useEffect(() => {
@@ -618,7 +625,11 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
               )}
 
               {/* Isometric Controls Bar */}
-              <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+              <div
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none"
+              >
                 <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#101216]/85 backdrop-blur-md border border-white/15 pointer-events-auto">
                   {ROTATION_LABELS.map((label, rIdx) => (
                     <button
@@ -643,6 +654,25 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
                     <RotateCw className="w-3.5 h-3.5" />
                   </button>
                 </div>
+
+                {parsed && parsed.sizeY > 1 && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#101216]/85 backdrop-blur-md border border-white/15 pointer-events-auto">
+                    <Layers className="w-3.5 h-3.5 text-accent-orange shrink-0" />
+                    <span className="text-[11px] font-mono text-text-secondary">Y</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={parsed.sizeY - 1}
+                      value={sliceY ?? parsed.sizeY - 1}
+                      onChange={(e) => setSliceY(Number(e.target.value))}
+                      className="w-24 sm:w-32 accent-[#F08832] cursor-pointer"
+                      aria-label="Layer height slice"
+                    />
+                    <span className="text-[11px] font-mono text-text-primary min-w-[44px] text-right">
+                      {(sliceY ?? parsed.sizeY - 1) + 1}/{parsed.sizeY}
+                    </span>
+                  </div>
+                )}
 
                 <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#101216]/85 backdrop-blur-md border border-white/15 pointer-events-auto">
                   <button
@@ -669,6 +699,7 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
                     onClick={() => {
                       setZoom(1);
                       setPan({ x: 0, y: 0 });
+                      if (parsed) setSliceY(parsed.sizeY - 1);
                     }}
                     title="Reset"
                     className="p-1.5 rounded-lg text-text-secondary hover:text-white cursor-pointer"

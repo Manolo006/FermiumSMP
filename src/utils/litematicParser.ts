@@ -23,7 +23,7 @@ export interface ParsedLitematic {
 interface NbtRegion {
   Position?: { x?: number; y?: number; z?: number };
   Size?: { x?: number; y?: number; z?: number };
-  BlockStatePalette?: Array<{ Name?: string }>;
+  BlockStatePalette?: Array<{ Name?: string; Properties?: Record<string, string> }>;
   BlockStates?: { hi: Uint32Array; lo: Uint32Array };
 }
 
@@ -112,6 +112,7 @@ function parseLitematicNbt(buffer: ArrayBuffer): NbtRoot {
             name === 'Regions' ||
             name === 'Metadata' ||
             name === 'BlockStatePalette' ||
+            name === 'Properties' ||
             name === 'Position' ||
             name === 'Size';
           if (name === 'Entities' || name === 'TileEntities' || name === 'PendingBlockTicks' || name === 'PendingFluidTicks') {
@@ -209,12 +210,14 @@ export function parseLitematicFromUrl(url: string): Promise<ParsedLitematic> {
     const paletteStyles: BlockVisualStyle[] = [];
     const styleIdMap = new Map<string, number>();
 
-    const getStyleId = (name: string): number => {
-      let id = styleIdMap.get(name);
+    const getStyleId = (name: string, props?: Record<string, string>): number => {
+      const style = getBlockVisualStyle(name, props);
+      const key = `${name}|${style.facing}|${style.isTopHalf ? 1 : 0}|${style.lit ? 1 : 0}`;
+      let id = styleIdMap.get(key);
       if (id === undefined) {
         id = paletteStyles.length;
-        paletteStyles.push(getBlockVisualStyle(name));
-        styleIdMap.set(name, id);
+        paletteStyles.push(style);
+        styleIdMap.set(key, id);
       }
       return id;
     };
@@ -257,12 +260,13 @@ export function parseLitematicFromUrl(url: string): Promise<ParsedLitematic> {
       const paletteAirFlags = new Uint8Array(palette.length);
       const paletteStyleIds = new Int32Array(palette.length);
       for (let p = 0; p < palette.length; p++) {
-        const bName = palette[p]?.Name || 'minecraft:air';
+        const entry = palette[p];
+        const bName = entry?.Name || 'minecraft:air';
         if (AIR_NAMES.has(bName)) {
           paletteAirFlags[p] = 1;
           paletteStyleIds[p] = -1;
         } else {
-          paletteStyleIds[p] = getStyleId(bName);
+          paletteStyleIds[p] = getStyleId(bName, entry?.Properties);
         }
       }
 
