@@ -63,7 +63,14 @@ export const MediaSection: React.FC = () => {
       try {
         const res = await fetch(`./videos.json?t=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) return;
-        const rawList: unknown = await res.json();
+        const rawText = await res.text();
+        let rawList: unknown = [];
+        try {
+          rawList = JSON.parse(rawText);
+        } catch {
+          // Resilient fallback if a manual GitHub edit misses a comma between links
+          rawList = rawText.match(/https?:\/\/[^\s"'\]\}]+/g) ?? [];
+        }
         if (!Array.isArray(rawList)) return;
 
         const urls = rawList

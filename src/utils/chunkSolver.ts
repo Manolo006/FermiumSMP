@@ -312,6 +312,36 @@ function pruneAndMerge(
   return centers.sort((a, b) => (a[1] !== b[1] ? a[1] - b[1] : a[0] - b[0]));
 }
 
+function fastLargeGridSweep(
+  targets: Set<string>,
+  pts: ReadonlyArray<[number, number]>,
+  lo: number,
+  hi: number
+): Array<[number, number]> {
+  const uncovered = new Set<string>(targets);
+  const sorted = pts.slice().sort((a, b) => (a[1] !== b[1] ? a[1] - b[1] : a[0] - b[0]));
+  const placed: Array<[number, number]> = [];
+
+  for (let idx = 0; idx < sorted.length; idx++) {
+    const [ax, az] = sorted[idx];
+    if (!uncovered.has(chunkKey(ax, az))) continue;
+
+    // Anchor square flush top-left against (ax, az)
+    const cx = ax - lo;
+    const cz = az - lo;
+    placed.push([normZero(cx), normZero(cz)]);
+
+    for (let z = cz + lo; z <= cz + hi; z++) {
+      for (let x = cx + lo; x <= cx + hi; x++) {
+        uncovered.delete(chunkKey(x, z));
+      }
+    }
+    if (uncovered.size === 0) break;
+  }
+
+  return placed;
+}
+
 export function solveChunkLoaders(
   targets: Set<string>,
   option: ActiveOption,
@@ -350,6 +380,9 @@ export function solveChunkLoaders(
       const two = tryTwoLoaders(targetList, lo, hi);
       if (two) {
         chosenCenters = two.sort((a, b) => (a[1] !== b[1] ? a[1] - b[1] : a[0] - b[0]));
+      } else if (targetList.length > 600) {
+        // Fast O(N * side^2) strip sweep so huge grids up to 100x100 stay instant
+        chosenCenters = fastLargeGridSweep(targets, targetList, lo, hi);
       } else {
         // 3) 8 orthogonal corner-anchored sweeps + prune/merge -> pick global best
         const sweeps: Array<[1 | -1, 1 | -1, 'z' | 'x']> = [

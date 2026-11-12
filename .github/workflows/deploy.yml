@@ -30,6 +30,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Sync root JSON configs to public
+        run: |
+          for f in videos.json members.json stats.json schematics.json; do
+            if [ -f "$f" ]; then cp -f "$f" "public/$f"; fi
+          done
+
       - name: Build with Vite
         run: npm run build
 

@@ -71,17 +71,17 @@ export const ChunkLoaderPage: React.FC = () => {
   const [reqMode, setReqMode] = useState<RequirementMode>('entity');
   const [activeOption, setActiveOption] = useState<ActiveOption>('portal');
 
-  // Writable grid dimensions (no fixed 3 presets!)
-  const [gridColsInput, setGridColsInput] = useState<string>('17');
-  const [gridRowsInput, setGridRowsInput] = useState<string>('17');
+  // Writable grid dimensions (default 32x32, up to 100x100!)
+  const [gridColsInput, setGridColsInput] = useState<string>('32');
+  const [gridRowsInput, setGridRowsInput] = useState<string>('32');
 
   // Writable chunk loader coverage size inputs per mechanic (user can override standard sizes by typing!)
   const [portalSideInput, setPortalSideInput] = useState<string>('3');
   const [pearlSideInput, setPearlSideInput] = useState<string>('1');
   const [simDistInput, setSimDistInput] = useState<string>('17');
 
-  const gridCols = clampInt(Number(gridColsInput), 5, 41, 17);
-  const gridRows = clampInt(Number(gridRowsInput), 5, 41, 17);
+  const gridCols = clampInt(Number(gridColsInput), 5, 100, 32);
+  const gridRows = clampInt(Number(gridRowsInput), 5, 100, 32);
   const portalSide = clampInt(Number(portalSideInput), 1, 21, reqMode === 'entity' ? 3 : 5);
   const pearlSide = clampInt(Number(pearlSideInput), 1, 21, reqMode === 'entity' ? 1 : 3);
   const simDistance = clampInt(Number(simDistInput), 1, 100, 17);
@@ -201,19 +201,21 @@ export const ChunkLoaderPage: React.FC = () => {
   };
 
   const handleCellPointerEnter = (e: React.PointerEvent<HTMLButtonElement>, cx: number, cz: number) => {
-    setHoveredChunk([cx, cz]);
-    if (dragBox) {
-      setDragBox((prev) =>
-        prev
-          ? {
-              ...prev,
-              currCX: cx,
-              currCZ: cz,
-              mode: e.shiftKey ? 'remove' : prev.mode,
-            }
-          : null
-      );
+    if (!dragBox) {
+      setHoveredChunk([cx, cz]);
+      return;
     }
+    if (dragBox.currCX === cx && dragBox.currCZ === cz) return;
+    setDragBox((prev) =>
+      prev
+        ? {
+            ...prev,
+            currCX: cx,
+            currCZ: cz,
+            mode: e.shiftKey ? 'remove' : prev.mode,
+          }
+        : null
+    );
   };
 
   const handleJumpCoords = () => {
@@ -355,21 +357,21 @@ export const ChunkLoaderPage: React.FC = () => {
             <input
               type="number"
               min={5}
-              max={41}
+              max={100}
               aria-label="Grid columns"
               value={gridColsInput}
               onChange={(e) => setGridColsInput(e.target.value)}
-              className="w-12 bg-white/[0.05] rounded px-1.5 py-0.5 text-center text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-orange"
+              className="w-14 bg-white/[0.05] rounded px-1.5 py-0.5 text-center text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-orange"
             />
             <span className="text-xs font-mono text-text-muted">×</span>
             <input
               type="number"
               min={5}
-              max={41}
+              max={100}
               aria-label="Grid rows"
               value={gridRowsInput}
               onChange={(e) => setGridRowsInput(e.target.value)}
-              className="w-12 bg-white/[0.05] rounded px-1.5 py-0.5 text-center text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-orange"
+              className="w-14 bg-white/[0.05] rounded px-1.5 py-0.5 text-center text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-orange"
             />
             <span className="text-[10px] font-mono text-text-muted">ch</span>
           </div>
@@ -489,13 +491,18 @@ export const ChunkLoaderPage: React.FC = () => {
 
             <div
               onContextMenu={(e) => e.preventDefault()}
-              className="w-full max-w-[580px] mx-auto bg-[#0D0F14] p-2 rounded-2xl border border-white/[0.08]"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-                gap: gridCols > 24 || gridRows > 24 ? '1px' : '2.5px',
-              }}
+              className="w-full max-w-full overflow-auto max-h-[600px] bg-[#0D0F14] p-2 rounded-2xl border border-white/[0.08]"
             >
+              <div
+                className="mx-auto"
+                style={{
+                  width: gridCols > 36 ? `${gridCols * 14}px` : '100%',
+                  maxWidth: gridCols > 36 ? undefined : '580px',
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
+                  gap: gridCols > 24 || gridRows > 24 ? '1px' : '2.5px',
+                }}
+              >
               {czRows.map((cz) =>
                 cxCols.map((cx) => {
                   const k = chunkKey(cx, cz);
@@ -554,6 +561,7 @@ export const ChunkLoaderPage: React.FC = () => {
                   );
                 })
               )}
+              </div>
             </div>
           </div>
 
@@ -851,7 +859,7 @@ export const ChunkLoaderPage: React.FC = () => {
               </div>
             ) : (
               <div className="max-h-[300px] overflow-y-auto pr-1 space-y-2">
-                {activeSolution.placements.map((p) => (
+                {activeSolution.placements.slice(0, 150).map((p) => (
                   <div
                     key={p.index}
                     className="p-3 rounded-xl bg-[#101216]/90 border border-white/[0.07] flex items-center justify-between gap-2.5"
@@ -894,6 +902,13 @@ export const ChunkLoaderPage: React.FC = () => {
                     </button>
                   </div>
                 ))}
+                {activeSolution.placements.length > 150 && (
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.07] text-[11px] font-mono text-text-muted text-center">
+                    {isIt
+                      ? `Mostrati i primi 150 di ${activeSolution.placements.length} — usa "Copia Tutto" per l'elenco completo.`
+                      : `Showing first 150 of ${activeSolution.placements.length} — use "Copy All" for full list.`}
+                  </div>
+                )}
               </div>
             )}
 
