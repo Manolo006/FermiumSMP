@@ -15,6 +15,7 @@ export const MembersPreview: React.FC = () => {
   const [members, setMembers] = useState<Member[]>(defaultMembers);
   const [statsList, setStatsList] = useState<MemberStats[]>(defaultMemberStats);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [originRect, setOriginRect] = useState<DOMRect | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,7 +122,10 @@ export const MembersPreview: React.FC = () => {
             <MemberCard
               key={member.id}
               member={member}
-              onSelect={() => setSelectedIdx(idx)}
+              onSelect={(_, rect) => {
+                setOriginRect(rect);
+                setSelectedIdx(idx);
+              }}
             />
           ))}
         </div>
@@ -130,11 +134,15 @@ export const MembersPreview: React.FC = () => {
       <MemberStatsModal
         member={selectedMember}
         stats={selectedStats}
+        originRect={originRect}
         rank={selectedRank}
         totalMembers={members.length}
         maxCarpetScore={maxCarpetScore}
         maxBlocksMined={maxBlocksMined}
-        onClose={() => setSelectedIdx(null)}
+        onClose={() => {
+          setSelectedIdx(null);
+          setOriginRect(null);
+        }}
         onPrev={() =>
           setSelectedIdx((prev) =>
             prev === null ? null : (prev - 1 + members.length) % members.length

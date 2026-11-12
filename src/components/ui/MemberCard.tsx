@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { BarChart3 } from 'lucide-react';
 import type { Member, MemberRoleGroup } from '../../types';
 import { getMemberBustUrl } from '../../data/members';
 
 interface MemberCardProps {
   member: Member;
-  onSelect?: (member: Member) => void;
+  onSelect?: (member: Member, sourceRect: DOMRect | null) => void;
 }
 
 export const MemberCard: React.FC<MemberCardProps> = ({ member, onSelect }) => {
   const bustUrl = getMemberBustUrl(member);
+  const pillRef = useRef<HTMLDivElement | null>(null);
 
   const roleStyles: Record<
     MemberRoleGroup,
@@ -38,10 +39,15 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, onSelect }) => {
 
   const style = roleStyles[member.roleGroup];
 
+  const handleClick = () => {
+    const rect = pillRef.current?.getBoundingClientRect() ?? null;
+    onSelect?.(member, rect);
+  };
+
   return (
     <button
       type="button"
-      onClick={() => onSelect?.(member)}
+      onClick={handleClick}
       className="group relative flex flex-col items-center pt-4 pb-2 px-2 select-none w-full text-center cursor-pointer transition-transform duration-150 ease-out-Quart active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-orange/70 rounded-3xl"
     >
       {/* Subtle Hover Stats Hint */}
@@ -76,6 +82,8 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, onSelect }) => {
 
       {/* Layer 4: Overlapping Frosted Glass Pill + Pixel MC Font */}
       <div
+        ref={pillRef}
+        data-member-pill={member.id}
         className={`relative z-20 -mt-8 w-full max-w-[230px] rounded-full frosted-name-pill border-2 ${style.pillBorder} ${style.glow} py-3 px-5 text-center transition-all duration-200 ease-out-Quart group-hover:-translate-y-0.5`}
       >
         <span className="block text-text-primary truncate font-pixel tracking-tight text-base sm:text-lg">
