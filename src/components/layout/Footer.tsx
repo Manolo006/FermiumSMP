@@ -122,6 +122,11 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/tools/chunk-loader" className="hover:text-text-primary transition-colors">
+                  {t.nav.chunkLoader}
+                </Link>
+              </li>
+              <li>
                 <Link to="/tools/archive" className="hover:text-text-primary transition-colors">
                   {t.nav.archive}
                 </Link>

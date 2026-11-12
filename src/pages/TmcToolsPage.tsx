@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Package,
   Layers,
@@ -7,6 +8,7 @@ import {
   Copy,
   Check,
   Gauge,
+  Grid3X3,
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Badge } from '../components/ui/Badge';
@@ -141,21 +143,31 @@ export const TmcToolsPage: React.FC = () => {
     <div className="min-h-screen pt-32 pb-24 bg-bg-main">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Page Header */}
-        <div className="max-w-2xl text-left mb-12">
-          <div className="mb-3">
-            <Badge variant="orange">Technical Minecraft Tools</Badge>
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-12">
+          <div className="max-w-2xl text-left">
+            <div className="mb-3">
+              <Badge variant="orange">Technical Minecraft Tools</Badge>
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-heading font-bold tracking-tight text-text-primary">
+              {isIt ? 'Calcolatori ' : 'TMC '}
+              <span className="text-accent-orange">
+                {isIt ? 'Tecnici TMC' : 'Calculators'}
+              </span>
+            </h1>
+            <p className="mt-3 text-sm sm:text-base text-text-secondary leading-relaxed">
+              {isIt
+                ? 'Strumenti rapidi per convertire item, stack (64 o 16) e Shulker Box, calcolare coordinate Nether ↔ Overworld, file regione e velocità degli Shulker Loader.'
+                : 'Fast utilities to convert items, stacks (64 or 16) and Shulker Boxes, calculate Nether ↔ Overworld coordinates, region files, and Shulker Loader speeds.'}
+            </p>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-heading font-bold tracking-tight text-text-primary">
-            {isIt ? 'Calcolatori ' : 'TMC '}
-            <span className="text-accent-orange">
-              {isIt ? 'Tecnici TMC' : 'Calculators'}
-            </span>
-          </h1>
-          <p className="mt-3 text-sm sm:text-base text-text-secondary leading-relaxed">
-            {isIt
-              ? 'Strumenti rapidi per convertire item, stack (64 o 16) e Shulker Box, calcolare coordinate Nether ↔ Overworld, file regione e velocità degli Shulker Loader.'
-              : 'Fast utilities to convert items, stacks (64 or 16) and Shulker Boxes, calculate Nether ↔ Overworld coordinates, region files, and Shulker Loader speeds.'}
-          </p>
+
+          <Link
+            to="/tools/chunk-loader"
+            className="inline-flex items-center gap-2 self-start lg:self-auto px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
+          >
+            <Grid3X3 className="w-3.5 h-3.5 text-accent-orange" />
+            <span>Chunk Loader Calculator</span>
+          </Link>
         </div>
 
         {/* Stack Size Selector Bar (64 vs 16) */}

@@ -9,6 +9,7 @@ import {
   History,
   Map,
   Database,
+  Grid3X3,
   Archive,
   Activity,
   MessageSquare,
@@ -244,6 +245,22 @@ export const Navbar: React.FC = () => {
                     </Link>
 
                     <Link
+                      to="/tools/chunk-loader"
+                      onClick={() => setToolsOpen(false)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.06] transition-colors group"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-accent-orange/10 border border-accent-orange/20 flex items-center justify-center text-accent-orange shrink-0">
+                        <Grid3X3 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-heading font-medium text-text-primary group-hover:text-accent-orange transition-colors">
+                          {t.nav.chunkLoader}
+                        </div>
+                        <div className="text-xs text-text-secondary">{t.nav.chunkLoaderSub}</div>
+                      </div>
+                    </Link>
+
+                    <Link
                       to="/tools/archive"
                       onClick={() => setToolsOpen(false)}
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.06] transition-colors group"
@@ -400,6 +417,14 @@ export const Navbar: React.FC = () => {
               >
                 <Database className="w-4 h-4 text-accent-orange" />
                 <span>{t.nav.storage}</span>
+              </Link>
+              <Link
+                to="/tools/chunk-loader"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-text-secondary hover:text-accent-orange hover:bg-white/[0.05]"
+              >
+                <Grid3X3 className="w-4 h-4 text-accent-orange" />
+                <span>{t.nav.chunkLoader}</span>
               </Link>
               <Link
                 to="/tools/archive"
