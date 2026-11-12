@@ -7,7 +7,7 @@ import {
 } from '../../data/memberStats';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Badge } from '../ui/Badge';
-import { MemberCard } from '../ui/MemberCard';
+import { MemberCard, type MemberCardOriginRects } from '../ui/MemberCard';
 import { MemberStatsModal } from '../ui/MemberStatsModal';
 
 export const MembersPreview: React.FC = () => {
@@ -15,7 +15,7 @@ export const MembersPreview: React.FC = () => {
   const [members, setMembers] = useState<Member[]>(defaultMembers);
   const [statsList, setStatsList] = useState<MemberStats[]>(defaultMemberStats);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const [originRect, setOriginRect] = useState<DOMRect | null>(null);
+  const [originMetrics, setOriginMetrics] = useState<MemberCardOriginRects | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,8 +122,9 @@ export const MembersPreview: React.FC = () => {
             <MemberCard
               key={member.id}
               member={member}
-              onSelect={(_, rect) => {
-                setOriginRect(rect);
+              isHidden={selectedMember?.id === member.id}
+              onSelect={(_, metrics) => {
+                setOriginMetrics(metrics);
                 setSelectedIdx(idx);
               }}
             />
@@ -134,14 +135,14 @@ export const MembersPreview: React.FC = () => {
       <MemberStatsModal
         member={selectedMember}
         stats={selectedStats}
-        originRect={originRect}
+        originMetrics={originMetrics}
         rank={selectedRank}
         totalMembers={members.length}
         maxCarpetScore={maxCarpetScore}
         maxBlocksMined={maxBlocksMined}
         onClose={() => {
           setSelectedIdx(null);
-          setOriginRect(null);
+          setOriginMetrics(null);
         }}
         onPrev={() =>
           setSelectedIdx((prev) =>

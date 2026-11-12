@@ -113,3 +113,11 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Prevent reduced-motion CSS 0.01ms transition rule from desyncing GSAP frame updates */
+.gsap-morph-actor,
+[data-hud-chrome],
+[data-hud-box],
+[data-stat-card] {
+  transition: none !important;
+}

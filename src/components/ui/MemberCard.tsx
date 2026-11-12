@@ -3,14 +3,27 @@ import { BarChart3 } from 'lucide-react';
 import type { Member, MemberRoleGroup } from '../../types';
 import { getMemberBustUrl } from '../../data/members';
 
-interface MemberCardProps {
-  member: Member;
-  onSelect?: (member: Member, sourceRect: DOMRect | null) => void;
+export interface MemberCardOriginRects {
+  pillRect: DOMRect;
+  bustRect: DOMRect;
+  nameRect: DOMRect;
 }
 
-export const MemberCard: React.FC<MemberCardProps> = ({ member, onSelect }) => {
+interface MemberCardProps {
+  member: Member;
+  isHidden?: boolean;
+  onSelect?: (member: Member, metrics: MemberCardOriginRects | null) => void;
+}
+
+export const MemberCard: React.FC<MemberCardProps> = ({
+  member,
+  isHidden = false,
+  onSelect,
+}) => {
   const bustUrl = getMemberBustUrl(member);
   const pillRef = useRef<HTMLDivElement | null>(null);
+  const bustRef = useRef<HTMLImageElement | null>(null);
+  const nameRef = useRef<HTMLSpanElement | null>(null);
 
   const roleStyles: Record<
     MemberRoleGroup,
@@ -40,15 +53,23 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, onSelect }) => {
   const style = roleStyles[member.roleGroup];
 
   const handleClick = () => {
-    const rect = pillRef.current?.getBoundingClientRect() ?? null;
-    onSelect?.(member, rect);
+    const pillRect = pillRef.current?.getBoundingClientRect();
+    const bustRect = bustRef.current?.getBoundingClientRect();
+    const nameRect = nameRef.current?.getBoundingClientRect();
+    if (pillRect && bustRect && nameRect) {
+      onSelect?.(member, { pillRect, bustRect, nameRect });
+    } else {
+      onSelect?.(member, null);
+    }
   };
 
   return (
     <button
       type="button"
       onClick={handleClick}
-      className="group relative flex flex-col items-center pt-4 pb-2 px-2 select-none w-full text-center cursor-pointer transition-transform duration-150 ease-out-Quart active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-orange/70 rounded-3xl"
+      className={`group relative flex flex-col items-center pt-4 pb-2 px-2 select-none w-full text-center cursor-pointer transition-[transform,opacity] duration-150 ease-out-Quart active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-orange/70 rounded-3xl ${
+        isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      }`}
     >
       {/* Subtle Hover Stats Hint */}
       <span className="absolute top-3 right-4 z-20 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#141820]/90 border border-white/15 text-text-secondary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 pointer-events-none">
@@ -73,6 +94,8 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, onSelect }) => {
 
         {/* Layer 3: Crisp 3D Bust Render */}
         <img
+          ref={bustRef}
+          data-member-bust={member.id}
           src={bustUrl}
           alt={member.name}
           className="relative z-10 w-[88%] h-[88%] object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out-Quart group-hover:-translate-y-1.5 group-hover:scale-[1.03] pointer-events-none"
@@ -86,7 +109,11 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, onSelect }) => {
         data-member-pill={member.id}
         className={`relative z-20 -mt-8 w-full max-w-[230px] rounded-full frosted-name-pill border-2 ${style.pillBorder} ${style.glow} py-3 px-5 text-center transition-all duration-200 ease-out-Quart group-hover:-translate-y-0.5`}
       >
-        <span className="block text-text-primary truncate font-pixel tracking-tight text-base sm:text-lg">
+        <span
+          ref={nameRef}
+          data-member-name={member.id}
+          className="inline-block max-w-full align-middle text-text-primary truncate font-pixel tracking-tight text-base sm:text-lg"
+        >
           {member.name}
         </span>
       </div>
