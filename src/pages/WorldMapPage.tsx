@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Badge } from '../components/ui/Badge';
+import { BLUEMAP_SITE_URL } from '../config/links';
 
 type ViewMode = 'perspective' | 'flat' | 'free';
 
@@ -74,11 +75,11 @@ const DEFAULT_DIMENSIONS: DimensionState[] = [
 
 async function probeAnyTileExists(dimId: string): Promise<boolean> {
   const candidates = [
-    `./maps/${dimId}/tiles/1/x0/z0.png`,
-    `./maps/${dimId}/tiles/1/x-1/z0.png`,
-    `./maps/${dimId}/tiles/2/x0/z0.png`,
-    `./maps/${dimId}/tiles/3/x0/z0.png`,
-    `./maps/${dimId}/tiles/0/x0/z0.prbm.gz`,
+    `${BLUEMAP_SITE_URL}/maps/${dimId}/tiles/1/x0/z0.png`,
+    `${BLUEMAP_SITE_URL}/maps/${dimId}/tiles/1/x-1/z0.png`,
+    `${BLUEMAP_SITE_URL}/maps/${dimId}/tiles/2/x0/z0.png`,
+    `${BLUEMAP_SITE_URL}/maps/${dimId}/tiles/3/x0/z0.png`,
+    `${BLUEMAP_SITE_URL}/maps/${dimId}/tiles/0/x0/z0.prbm.gz`,
   ];
   for (const url of candidates) {
     try {
@@ -109,6 +110,7 @@ export const WorldMapPage: React.FC = () => {
   const [iframeLoaded, setIframeLoaded] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [dismissedEmptyAlert, setDismissedEmptyAlert] = useState<string | null>(null);
+  const [externalSiteUnavailable, setExternalSiteUnavailable] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -121,17 +123,24 @@ export const WorldMapPage: React.FC = () => {
 
     async function inspectMaps() {
       let mapIds = ['world', 'world_the_nether', 'world_the_end'];
+      let rootReachable = false;
       try {
-        const rootRes = await fetch('./bluemap/settings.json');
+        const rootRes = await fetch(`${BLUEMAP_SITE_URL}/settings.json`);
         if (rootRes.ok) {
+          rootReachable = true;
           const rootJson = (await rootRes.json()) as { maps?: string[] };
           if (Array.isArray(rootJson.maps) && rootJson.maps.length > 0) {
             mapIds = rootJson.maps;
           }
         }
       } catch {
-        // fallback to default 3 dimensions
+        // external map site not published or blocked
       }
+
+      if (!cancelled) {
+        setExternalSiteUnavailable(!rootReachable);
+      }
+      if (!rootReachable) return;
 
       const resolved = await Promise.all(
         mapIds.map(async (id) => {
@@ -150,7 +159,7 @@ export const WorldMapPage: React.FC = () => {
           let startPos: [number, number] = base.startPos;
 
           try {
-            const sRes = await fetch(`./maps/${id}/settings.json`);
+            const sRes = await fetch(`${BLUEMAP_SITE_URL}/maps/${id}/settings.json`);
             if (sRes.ok) {
               const sJson = (await sRes.json()) as BlueMapDimensionSettings;
               hasSettings = true;
@@ -207,7 +216,7 @@ export const WorldMapPage: React.FC = () => {
       // ignore cross-frame read timing before load
     }
     if (iframeRef.current) {
-      iframeRef.current.src = `./bluemap/index.html${nextHash}`;
+      iframeRef.current.src = `${BLUEMAP_SITE_URL}/${nextHash}`;
     }
   }, []);
 
@@ -242,12 +251,12 @@ export const WorldMapPage: React.FC = () => {
   };
 
   const initialSrc = useMemo(
-    () => `./bluemap/index.html#${buildBlueMapHash('world', [0, 0], 'perspective')}`,
+    () => `${BLUEMAP_SITE_URL}/#${buildBlueMapHash('world', [0, 0], 'perspective')}`,
     []
   );
 
   const directBlueMapHref = useMemo(
-    () => `./bluemap/index.html#${buildBlueMapHash(activeDimension.id, activeDimension.startPos, viewMode)}`,
+    () => `${BLUEMAP_SITE_URL}/#${buildBlueMapHash(activeDimension.id, activeDimension.startPos, viewMode)}`,
     [activeDimension, viewMode]
   );
 
@@ -390,7 +399,33 @@ export const WorldMapPage: React.FC = () => {
             </div>
           )}
 
-          {activeDimension.hasSettings &&
+          {externalSiteUnavailable && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-[#0D1015]/95">
+              <div className="max-w-lg w-full rounded-2xl bg-[#141821] border border-accent-orange/35 p-6 space-y-3 text-center shadow-2xl">
+                <Info className="w-7 h-7 text-accent-orange mx-auto" />
+                <h2 className="font-heading text-lg font-bold text-text-primary">
+                  {isIt ? 'Sito Mappa Separato non ancora online' : 'Separate Map Site Not Live Yet'}
+                </h2>
+                <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+                  {isIt ? (
+                    <>
+                      Il sito è collegato a{' '}
+                      <code className="text-accent-orange break-all">{BLUEMAP_SITE_URL}</code>. Carica su
+                      quel repository i file preparati nella cartella Desktop <code className="text-text-primary">FermiumSMP-Map</code> e attiva GitHub Pages sul branch <code className="text-text-primary">main</code>.
+                    </>
+                  ) : (
+                    <>
+                      This page points to{' '}
+                      <code className="text-accent-orange break-all">{BLUEMAP_SITE_URL}</code>. Push the prepared <code className="text-text-primary">FermiumSMP-Map</code> folder and enable GitHub Pages on branch <code className="text-text-primary">main</code>.
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!externalSiteUnavailable &&
+            activeDimension.hasSettings &&
             !activeDimension.hasTiles &&
             dismissedEmptyAlert !== activeDimension.id && (
               <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-xl rounded-2xl bg-[#141821]/95 border border-accent-orange/35 px-4 py-3 shadow-2xl backdrop-blur-md flex items-start gap-3">
