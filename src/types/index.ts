@@ -7,6 +7,24 @@ export interface Member {
   customImageUrl?: string;
 }
 
+export interface MemberStatTopBlock {
+  id: string;
+  label: string;
+  count: number;
+}
+
+export interface MemberStats {
+  name: string;
+  playTimeHours: number;
+  blocksMined: number;
+  blocksPlaced: number;
+  deaths: number;
+  mobKills: number;
+  distanceKm: number;
+  carpetScore: number;
+  topBlocks: MemberStatTopBlock[];
+}
+
 export interface StreamerCreator {
   memberId: string;
   name: string;

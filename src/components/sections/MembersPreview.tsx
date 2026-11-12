@@ -1,17 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import type { Member } from '../../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import type { Member, MemberStats } from '../../types';
 import { membersList as defaultMembers, sortMembersByRole } from '../../data/members';
+import {
+  buildFallbackStatsForName,
+  defaultMemberStats,
+} from '../../data/memberStats';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Badge } from '../ui/Badge';
 import { MemberCard } from '../ui/MemberCard';
+import { MemberStatsModal } from '../ui/MemberStatsModal';
 
 export const MembersPreview: React.FC = () => {
   const { t } = useLanguage();
   const [members, setMembers] = useState<Member[]>(defaultMembers);
+  const [statsList, setStatsList] = useState<MemberStats[]>(defaultMemberStats);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`./members.json?t=${Date.now()}`, { cache: 'no-store' })
+    const bust = Date.now();
+
+    fetch(`./members.json?t=${bust}`, { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled || !Array.isArray(data)) return;
@@ -29,14 +38,62 @@ export const MembersPreview: React.FC = () => {
           setMembers(sortMembersByRole(parsed));
         }
       })
-      .catch(() => {
-        // Fallback su defaultMembers
-      });
+      .catch(() => {});
+
+    fetch(`./stats.json?t=${bust}`, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !Array.isArray(data)) return;
+        const valid = data.filter(
+          (item): item is MemberStats => item && typeof item.name === 'string'
+        );
+        if (valid.length > 0) {
+          setStatsList(valid);
+        }
+      })
+      .catch(() => {});
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const statsMap = useMemo(() => {
+    const map = new Map<string, MemberStats>();
+    for (const s of statsList) {
+      map.set(s.name.toLowerCase(), s);
+    }
+    return map;
+  }, [statsList]);
+
+  const memberMetrics = useMemo(() => {
+    return members.map(
+      (m) => statsMap.get(m.name.toLowerCase()) ?? buildFallbackStatsForName(m.name)
+    );
+  }, [members, statsMap]);
+
+  const { maxCarpetScore, maxBlocksMined, rankByName } = useMemo(() => {
+    let maxCarpet = 1;
+    let maxMined = 1;
+    for (const st of memberMetrics) {
+      if (st.carpetScore > maxCarpet) maxCarpet = st.carpetScore;
+      if (st.blocksMined > maxMined) maxMined = st.blocksMined;
+    }
+    const sorted = [...memberMetrics].sort((a, b) => b.carpetScore - a.carpetScore);
+    const rankMap = new Map<string, number>();
+    sorted.forEach((st, idx) => rankMap.set(st.name.toLowerCase(), idx + 1));
+    return {
+      maxCarpetScore: maxCarpet,
+      maxBlocksMined: maxMined,
+      rankByName: rankMap,
+    };
+  }, [memberMetrics]);
+
+  const selectedMember = selectedIdx !== null ? members[selectedIdx] ?? null : null;
+  const selectedStats = selectedIdx !== null ? memberMetrics[selectedIdx] ?? null : null;
+  const selectedRank = selectedMember
+    ? rankByName.get(selectedMember.name.toLowerCase()) ?? 1
+    : 1;
 
   return (
     <section
@@ -60,11 +117,35 @@ export const MembersPreview: React.FC = () => {
 
         {/* Members Grid (Ordinati: Owner -> Member -> Trial) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7">
-          {members.map((member) => (
-            <MemberCard key={member.id} member={member} />
+          {members.map((member, idx) => (
+            <MemberCard
+              key={member.id}
+              member={member}
+              onSelect={() => setSelectedIdx(idx)}
+            />
           ))}
         </div>
       </div>
+
+      <MemberStatsModal
+        member={selectedMember}
+        stats={selectedStats}
+        rank={selectedRank}
+        totalMembers={members.length}
+        maxCarpetScore={maxCarpetScore}
+        maxBlocksMined={maxBlocksMined}
+        onClose={() => setSelectedIdx(null)}
+        onPrev={() =>
+          setSelectedIdx((prev) =>
+            prev === null ? null : (prev - 1 + members.length) % members.length
+          )
+        }
+        onNext={() =>
+          setSelectedIdx((prev) =>
+            prev === null ? null : (prev + 1) % members.length
+          )
+        }
+      />
     </section>
   );
 };

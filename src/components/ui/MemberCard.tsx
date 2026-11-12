@@ -1,12 +1,14 @@
 import React from 'react';
+import { BarChart3 } from 'lucide-react';
 import type { Member, MemberRoleGroup } from '../../types';
 import { getMemberBustUrl } from '../../data/members';
 
 interface MemberCardProps {
   member: Member;
+  onSelect?: (member: Member) => void;
 }
 
-export const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
+export const MemberCard: React.FC<MemberCardProps> = ({ member, onSelect }) => {
   const bustUrl = getMemberBustUrl(member);
 
   const roleStyles: Record<
@@ -37,7 +39,17 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
   const style = roleStyles[member.roleGroup];
 
   return (
-    <div className="group relative flex flex-col items-center pt-4 pb-2 px-2 select-none">
+    <button
+      type="button"
+      onClick={() => onSelect?.(member)}
+      className="group relative flex flex-col items-center pt-4 pb-2 px-2 select-none w-full text-center cursor-pointer transition-transform duration-150 ease-out-Quart active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-orange/70 rounded-3xl"
+    >
+      {/* Subtle Hover Stats Hint */}
+      <span className="absolute top-3 right-4 z-20 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#141820]/90 border border-white/15 text-text-secondary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 pointer-events-none">
+        <BarChart3 className="w-3 h-3 text-accent-orange" />
+        <span>Stats</span>
+      </span>
+
       {/* Bust Container with Dynamic Skin Back-Blur */}
       <div className="relative w-full max-w-[210px] aspect-square flex items-end justify-center">
         {/* Layer 1: Role Ambient Aura */}
@@ -70,6 +82,6 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
           {member.name}
         </span>
       </div>
-    </div>
+    </button>
   );
 };

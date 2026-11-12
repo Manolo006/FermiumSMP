@@ -1,0 +1,137 @@
+[
+  {
+    "name": "jenktland3",
+    "playTimeHours": 342.4,
+    "blocksMined": 2845120,
+    "blocksPlaced": 618400,
+    "deaths": 12,
+    "mobKills": 48210,
+    "distanceKm": 1940.5,
+    "carpetScore": 3463520,
+    "topBlocks": [
+      { "id": "deepslate", "label": "Deepslate", "count": 1420300 },
+      { "id": "stone", "label": "Stone", "count": 690450 },
+      { "id": "netherrack", "label": "Netherrack", "count": 412800 }
+    ]
+  },
+  {
+    "name": "REDpl4yers",
+    "playTimeHours": 318.8,
+    "blocksMined": 2610940,
+    "blocksPlaced": 594120,
+    "deaths": 9,
+    "mobKills": 53420,
+    "distanceKm": 1812.3,
+    "carpetScore": 3205060,
+    "topBlocks": [
+      { "id": "deepslate", "label": "Deepslate", "count": 1185200 },
+      { "id": "netherrack", "label": "Netherrack", "count": 642100 },
+      { "id": "stone", "label": "Stone", "count": 489300 }
+    ]
+  },
+  {
+    "name": "poncher",
+    "playTimeHours": 274.2,
+    "blocksMined": 1942800,
+    "blocksPlaced": 488210,
+    "deaths": 15,
+    "mobKills": 31900,
+    "distanceKm": 1428.0,
+    "carpetScore": 2431010,
+    "topBlocks": [
+      { "id": "stone", "label": "Stone", "count": 812400 },
+      { "id": "deepslate", "label": "Deepslate", "count": 694100 },
+      { "id": "obsidian", "label": "Obsidian", "count": 124600 }
+    ]
+  },
+  {
+    "name": "drp1n",
+    "playTimeHours": 296.5,
+    "blocksMined": 2480350,
+    "blocksPlaced": 512900,
+    "deaths": 11,
+    "mobKills": 39450,
+    "distanceKm": 1684.7,
+    "carpetScore": 2993250,
+    "topBlocks": [
+      { "id": "deepslate", "label": "Deepslate", "count": 1290400 },
+      { "id": "stone", "label": "Stone", "count": 615800 },
+      { "id": "end_stone", "label": "End Stone", "count": 294500 }
+    ]
+  },
+  {
+    "name": "supercece_",
+    "playTimeHours": 251.0,
+    "blocksMined": 1765420,
+    "blocksPlaced": 441600,
+    "deaths": 18,
+    "mobKills": 28140,
+    "distanceKm": 1310.4,
+    "carpetScore": 2207020,
+    "topBlocks": [
+      { "id": "stone", "label": "Stone", "count": 745900 },
+      { "id": "deepslate", "label": "Deepslate", "count": 589300 },
+      { "id": "tuff", "label": "Tuff", "count": 218400 }
+    ]
+  },
+  {
+    "name": "ohluck_",
+    "playTimeHours": 229.6,
+    "blocksMined": 1628900,
+    "blocksPlaced": 392450,
+    "deaths": 14,
+    "mobKills": 34820,
+    "distanceKm": 1195.8,
+    "carpetScore": 2021350,
+    "topBlocks": [
+      { "id": "deepslate", "label": "Deepslate", "count": 792300 },
+      { "id": "netherrack", "label": "Netherrack", "count": 418900 },
+      { "id": "stone", "label": "Stone", "count": 284100 }
+    ]
+  },
+  {
+    "name": "lollo235_",
+    "playTimeHours": 204.3,
+    "blocksMined": 1384200,
+    "blocksPlaced": 356800,
+    "deaths": 16,
+    "mobKills": 24910,
+    "distanceKm": 1086.2,
+    "carpetScore": 1741000,
+    "topBlocks": [
+      { "id": "stone", "label": "Stone", "count": 614200 },
+      { "id": "deepslate", "label": "Deepslate", "count": 442800 },
+      { "id": "sand", "label": "Sand", "count": 168500 }
+    ]
+  },
+  {
+    "name": "Manolo006",
+    "playTimeHours": 186.7,
+    "blocksMined": 1294600,
+    "blocksPlaced": 378900,
+    "deaths": 10,
+    "mobKills": 22480,
+    "distanceKm": 1024.9,
+    "carpetScore": 1673500,
+    "topBlocks": [
+      { "id": "deepslate", "label": "Deepslate", "count": 598400 },
+      { "id": "stone", "label": "Stone", "count": 412600 },
+      { "id": "white_concrete", "label": "Concrete", "count": 145200 }
+    ]
+  },
+  {
+    "name": "capo_rg5",
+    "playTimeHours": 162.4,
+    "blocksMined": 1042150,
+    "blocksPlaced": 294300,
+    "deaths": 13,
+    "mobKills": 19340,
+    "distanceKm": 894.1,
+    "carpetScore": 1336450,
+    "topBlocks": [
+      { "id": "stone", "label": "Stone", "count": 486200 },
+      { "id": "deepslate", "label": "Deepslate", "count": 332900 },
+      { "id": "netherrack", "label": "Netherrack", "count": 138400 }
+    ]
+  }
+]
