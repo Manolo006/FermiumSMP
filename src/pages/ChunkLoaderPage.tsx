@@ -105,16 +105,12 @@ function solveSetCover(
 
   const targetList = Array.from(targets).map(parseKey);
 
-  const side = option === 'portal' ? portalSide : option === 'pearl' ? pearlSide : simDistance;
+  const side =
+    option === 'portal' ? portalSide : option === 'pearl' ? pearlSide : simDistance * 2 + 1;
   const lo = -Math.floor((side - 1) / 2);
   const hi = Math.ceil((side - 1) / 2);
 
   const coversPoint = (cx: number, cz: number, tx: number, tz: number) => {
-    if (option === 'player') {
-      const dx = tx - cx;
-      const dz = tz - cz;
-      return dx * dx + dz * dz <= simDistance * simDistance;
-    }
     const dx = tx - cx;
     const dz = tz - cz;
     return dx >= lo && dx <= hi && dz >= lo && dz <= hi;
@@ -122,66 +118,50 @@ function solveSetCover(
 
   let chosenCenters: Array<[number, number]> = [];
 
-  if (option !== 'player' && side <= 1) {
+  if (side <= 1) {
     chosenCenters = targetList.sort((a, b) => (a[1] !== b[1] ? a[1] - b[1] : a[0] - b[0]));
   } else {
-    const meanX = targetList.reduce((s, [x]) => s + x, 0) / targetList.length;
-    const meanZ = targetList.reduce((s, [, z]) => s + z, 0) / targetList.length;
+    const minTX = Math.min(...targetList.map(([x]) => x));
+    const maxTX = Math.max(...targetList.map(([x]) => x));
+    const minTZ = Math.min(...targetList.map(([, z]) => z));
+    const maxTZ = Math.max(...targetList.map(([, z]) => z));
 
-    const candidateMap = new Map<string, [number, number]>();
-    if (option === 'player') {
-      const minX = Math.min(...targetList.map(([x]) => x));
-      const maxX = Math.max(...targetList.map(([x]) => x));
-      const minZ = Math.min(...targetList.map(([, z]) => z));
-      const maxZ = Math.max(...targetList.map(([, z]) => z));
-      const pad = Math.min(simDistance, 14);
-      for (let cz = minZ - pad; cz <= maxZ + pad; cz++) {
-        for (let cx = minX - pad; cx <= maxX + pad; cx++) {
-          candidateMap.set(keyOf(cx, cz), [cx, cz]);
-        }
-      }
-      candidateMap.set(keyOf(Math.round(meanX), Math.round(meanZ)), [
-        Math.round(meanX),
-        Math.round(meanZ),
-      ]);
+    // Exact mathematical single-loader check for any square Chebyshev footprint
+    if (maxTX - minTX <= hi - lo && maxTZ - minTZ <= hi - lo) {
+      const cx = Math.round((maxTX - hi + (minTX - lo)) / 2);
+      const cz = Math.round((maxTZ - hi + (minTZ - lo)) / 2);
+      chosenCenters = [[cx, cz]];
     } else {
-      for (const [tx, tz] of targetList) {
-        for (let dcz = lo; dcz <= hi; dcz++) {
-          for (let dcx = lo; dcx <= hi; dcx++) {
-            const cx = tx - dcx;
-            const cz = tz - dcz;
+      const meanX = targetList.reduce((s, [x]) => s + x, 0) / targetList.length;
+      const meanZ = targetList.reduce((s, [, z]) => s + z, 0) / targetList.length;
+
+      const candidateMap = new Map<string, [number, number]>();
+      const step = side > 15 ? Math.max(1, Math.floor(side / 4)) : 1;
+      if (option === 'player') {
+        for (let cz = minTZ; cz <= maxTZ; cz += step) {
+          for (let cx = minTX; cx <= maxTX; cx += step) {
             candidateMap.set(keyOf(cx, cz), [cx, cz]);
           }
         }
-      }
-    }
-
-    const candidates = Array.from(candidateMap.values());
-    const uncovered = new Set<string>(targets);
-
-    // Check if a single loader covers everything (centered closest to selection centroid)
-    let bestSingle: [number, number] | null = null;
-    let bestSingleDist = Infinity;
-    for (const [cx, cz] of candidates) {
-      let coversAll = true;
-      for (const [tx, tz] of targetList) {
-        if (!coversPoint(cx, cz, tx, tz)) {
-          coversAll = false;
-          break;
+        candidateMap.set(keyOf(Math.round(meanX), Math.round(meanZ)), [
+          Math.round(meanX),
+          Math.round(meanZ),
+        ]);
+      } else {
+        for (const [tx, tz] of targetList) {
+          for (let dcz = lo; dcz <= hi; dcz += step) {
+            for (let dcx = lo; dcx <= hi; dcx += step) {
+              const cx = tx - dcx;
+              const cz = tz - dcz;
+              candidateMap.set(keyOf(cx, cz), [cx, cz]);
+            }
+          }
         }
       }
-      if (coversAll) {
-        const d2 = (cx - meanX) ** 2 + (cz - meanZ) ** 2 - (targets.has(keyOf(cx, cz)) ? 0.25 : 0);
-        if (d2 < bestSingleDist) {
-          bestSingleDist = d2;
-          bestSingle = [cx, cz];
-        }
-      }
-    }
 
-    if (bestSingle) {
-      chosenCenters = [bestSingle];
-    } else {
+      const candidates = Array.from(candidateMap.values());
+      const uncovered = new Set<string>(targets);
+
       while (uncovered.size > 0) {
         const remList = Array.from(uncovered).map(parseKey);
         const remMeanX = remList.reduce((s, [x]) => s + x, 0) / remList.length;
@@ -238,9 +218,7 @@ function solveSetCover(
       const visR = Math.min(simDistance, 45);
       for (let dz = -visR; dz <= visR; dz++) {
         for (let dx = -visR; dx <= visR; dx++) {
-          if (dx * dx + dz * dz <= simDistance * simDistance) {
-            primaryChunks.add(keyOf(cx + dx, cz + dz));
-          }
+          primaryChunks.add(keyOf(cx + dx, cz + dz));
         }
       }
     } else {
@@ -998,7 +976,7 @@ export const ChunkLoaderPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="text-sm font-heading font-bold text-text-primary">
-                      Player AFK (Raggio {simDistance} ch)
+                      Player AFK (Raggio {simDistance} · {simDistance * 2 + 1}×{simDistance * 2 + 1})
                     </div>
                     <div className="text-xs text-text-secondary mt-0.5">
                       {isIt
