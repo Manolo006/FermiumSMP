@@ -235,8 +235,9 @@ function solveSetCover(
 
   for (const [cx, cz] of chosenCenters) {
     if (option === 'player') {
-      for (let dz = -simDistance; dz <= simDistance; dz++) {
-        for (let dx = -simDistance; dx <= simDistance; dx++) {
+      const visR = Math.min(simDistance, 45);
+      for (let dz = -visR; dz <= visR; dz++) {
+        for (let dx = -visR; dx <= visR; dx++) {
           if (dx * dx + dz * dz <= simDistance * simDistance) {
             primaryChunks.add(keyOf(cx + dx, cz + dz));
           }
@@ -321,13 +322,13 @@ export const ChunkLoaderPage: React.FC = () => {
   // Writable chunk loader coverage size inputs per mechanic (user can override standard sizes by typing!)
   const [portalSideInput, setPortalSideInput] = useState<string>('3');
   const [pearlSideInput, setPearlSideInput] = useState<string>('1');
-  const [simDistInput, setSimDistInput] = useState<string>('10');
+  const [simDistInput, setSimDistInput] = useState<string>('17');
 
   const gridCols = clampInt(Number(gridColsInput), 5, 41, 17);
   const gridRows = clampInt(Number(gridRowsInput), 5, 41, 17);
   const portalSide = clampInt(Number(portalSideInput), 1, 21, reqMode === 'entity' ? 3 : 5);
   const pearlSide = clampInt(Number(pearlSideInput), 1, 21, reqMode === 'entity' ? 1 : 3);
-  const simDistance = clampInt(Number(simDistInput), 1, 32, 10);
+  const simDistance = clampInt(Number(simDistInput), 1, 100, 17);
 
   // Viewport center in Chunk coords
   const [viewCX, setViewCX] = useState<number>(0);
@@ -1025,13 +1026,21 @@ export const ChunkLoaderPage: React.FC = () => {
                   <input
                     type="number"
                     min={1}
-                    max={32}
+                    max={100}
                     aria-label="Player simulation distance"
                     value={simDistInput}
                     onChange={(e) => setSimDistInput(e.target.value)}
-                    className="w-14 bg-[#101216] border border-white/15 rounded-lg px-2 py-1 text-center text-xs font-mono text-text-primary focus:outline-none focus:border-amber-400"
+                    className="w-16 bg-[#101216] border border-white/15 rounded-lg px-2 py-1 text-center text-xs font-mono text-text-primary focus:outline-none focus:border-amber-400"
                   />
                   <span className="text-[11px] font-mono text-text-muted">ch</span>
+                  <button
+                    type="button"
+                    onClick={() => setSimDistInput('17')}
+                    className="p-1 rounded hover:bg-white/[0.07] text-text-muted hover:text-text-primary cursor-pointer"
+                    title="Reset default (17)"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
             </div>
