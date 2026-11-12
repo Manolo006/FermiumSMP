@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  ExternalLink,
   FileCode2,
   Image as ImageIcon,
   Images,
@@ -13,6 +14,7 @@ import {
   RotateCcw,
   RotateCw,
   Search,
+  Sparkles,
   X,
   ZoomIn,
   ZoomOut,
@@ -34,6 +36,7 @@ interface SchematicItem {
   id?: string;
   name: string;
   author?: string;
+  origin?: 'fermium' | 'external';
   category?: string;
   dimensions?: string;
   blocks?: number;
@@ -810,6 +813,79 @@ export const ArchivePage: React.FC = () => {
     });
   }, [schematics, selectedCategory, searchQuery]);
 
+  const fermiumSchematics = useMemo(
+    () => filteredSchematics.filter((item) => item.origin === 'fermium'),
+    [filteredSchematics]
+  );
+
+  const externalSchematics = useMemo(
+    () => filteredSchematics.filter((item) => item.origin !== 'fermium'),
+    [filteredSchematics]
+  );
+
+  const renderSection = (
+    title: string,
+    subtitle: string,
+    items: SchematicItem[],
+    variant: 'fermium' | 'external',
+    withTopDivider = false
+  ) => {
+    if (items.length === 0) return null;
+    const isFermium = variant === 'fermium';
+
+    return (
+      <section className={withTopDivider ? 'pt-14 mt-14 border-t border-white/[0.08]' : ''}>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 text-left">
+          <div>
+            <div className="inline-flex items-center gap-2 mb-2">
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase tracking-wider border ${
+                  isFermium
+                    ? 'bg-accent-orange/15 border-accent-orange/40 text-accent-orange'
+                    : 'bg-white/[0.05] border-white/15 text-text-secondary'
+                }`}
+              >
+                {isFermium ? (
+                  <Sparkles className="w-3 h-3" />
+                ) : (
+                  <ExternalLink className="w-3 h-3" />
+                )}
+                <span>
+                  {isFermium
+                    ? isIt
+                      ? 'Originali Fermium'
+                      : 'Fermium Originals'
+                    : isIt
+                      ? 'Risorse Esterne'
+                      : 'External Designs'}
+                </span>
+              </span>
+              <span className="text-xs font-mono text-text-muted">({items.length})</span>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text-primary tracking-tight">
+              {title}
+            </h2>
+            <p className="mt-1 text-xs sm:text-sm text-text-secondary">{subtitle}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {items.map((item, idx) => (
+            <SchematicCard
+              key={item.id || `${variant}-${idx}`}
+              item={item}
+              isIt={isIt}
+              onOpenLightbox={(targetItem, manualImages, index, mode) =>
+                setLightbox({ item: targetItem, manualImages, index, mode })
+              }
+            />
+          ))}
+        </div>
+      </section>
+    );
+  };
+
   return (
     <div className="min-h-screen pt-32 pb-24 bg-bg-main">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -844,7 +920,7 @@ export const ArchivePage: React.FC = () => {
         </div>
 
         {categories.length > 2 && (
-          <div className="flex flex-wrap items-center gap-2 mb-8">
+          <div className="flex flex-wrap items-center gap-2 mb-10">
             {categories.map((cat) => {
               const active = selectedCategory === cat;
               const label =
@@ -872,17 +948,26 @@ export const ArchivePage: React.FC = () => {
         )}
 
         {filteredSchematics.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSchematics.map((item, idx) => (
-              <SchematicCard
-                key={item.id || idx}
-                item={item}
-                isIt={isIt}
-                onOpenLightbox={(targetItem, manualImages, index, mode) =>
-                  setLightbox({ item: targetItem, manualImages, index, mode })
-                }
-              />
-            ))}
+          <div>
+            {renderSection(
+              isIt ? 'Progettate da Fermium SMP' : 'Designed by Fermium SMP',
+              isIt
+                ? 'Schematics originali realizzate e progettate dai membri di Fermium.'
+                : 'Original schematics designed and engineered by Fermium SMP members.',
+              fermiumSchematics,
+              'fermium',
+              false
+            )}
+
+            {renderSection(
+              isIt ? 'Schematics Esterne Usate sul Server' : 'External Schematics Used on Server',
+              isIt
+                ? 'Macchinari, world eater e sistemi di altri creator tecnici utilizzati nel mondo di Fermium SMP.'
+                : 'Contraptions, world eaters, and systems created by external technical designers used on Fermium SMP.',
+              externalSchematics,
+              'external',
+              fermiumSchematics.length > 0
+            )}
           </div>
         ) : (
           <div className="glass-panel rounded-2xl p-10 text-center max-w-xl mx-auto">
