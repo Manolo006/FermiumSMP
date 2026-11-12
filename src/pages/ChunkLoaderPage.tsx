@@ -281,13 +281,22 @@ export const ChunkLoaderPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/tools/storage"
-          className="inline-flex items-center gap-2 self-start lg:self-auto px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
-        >
-          <ArrowLeftRight className="w-3.5 h-3.5 text-accent-orange" />
-          <span>{isIt ? 'Calcolatori TMC (Stack & Coords)' : 'TMC Calculators'}</span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+          <Link
+            to="/tools/enchanting"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-accent-orange" />
+            <span>{isIt ? 'Incantesimi & Incudine' : 'Enchant Optimizer'}</span>
+          </Link>
+          <Link
+            to="/tools/storage"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5 text-accent-orange" />
+            <span>{isIt ? 'Calcolatori TMC' : 'TMC Calculators'}</span>
+          </Link>
+        </div>
       </div>
 
       {/* Top Controls Bar */}

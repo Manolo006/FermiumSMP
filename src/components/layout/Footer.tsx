@@ -127,6 +127,11 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/tools/enchanting" className="hover:text-text-primary transition-colors">
+                  {t.nav.enchanting}
+                </Link>
+              </li>
+              <li>
                 <Link to="/tools/archive" className="hover:text-text-primary transition-colors">
                   {t.nav.archive}
                 </Link>

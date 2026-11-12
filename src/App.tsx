@@ -7,6 +7,7 @@ import { TmcToolsPage } from './pages/TmcToolsPage';
 import { ArchivePage } from './pages/ArchivePage';
 import { WorldMapPage } from './pages/WorldMapPage';
 import { ChunkLoaderPage } from './pages/ChunkLoaderPage';
+import { EnchantingPage } from './pages/EnchantingPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 
 export const App: React.FC = () => {
@@ -27,6 +28,7 @@ export const App: React.FC = () => {
             <Route path="/tools/storage" element={<TmcToolsPage />} />
             <Route path="/tools/calculators" element={<TmcToolsPage />} />
             <Route path="/tools/chunk-loader" element={<ChunkLoaderPage />} />
+            <Route path="/tools/enchanting" element={<EnchantingPage />} />
             <Route path="/tools/archive" element={<ArchivePage />} />
             <Route path="/tools/status" element={<PlaceholderPage title="Server Status" />} />
             <Route path="*" element={<Home />} />

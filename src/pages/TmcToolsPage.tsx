@@ -9,6 +9,7 @@ import {
   Check,
   Gauge,
   Grid3X3,
+  Sparkles,
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Badge } from '../components/ui/Badge';
@@ -161,13 +162,22 @@ export const TmcToolsPage: React.FC = () => {
             </p>
           </div>
 
-          <Link
-            to="/tools/chunk-loader"
-            className="inline-flex items-center gap-2 self-start lg:self-auto px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
-          >
-            <Grid3X3 className="w-3.5 h-3.5 text-accent-orange" />
-            <span>Chunk Loader Calculator</span>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+            <Link
+              to="/tools/chunk-loader"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
+            >
+              <Grid3X3 className="w-3.5 h-3.5 text-accent-orange" />
+              <span>Chunk Loader</span>
+            </Link>
+            <Link
+              to="/tools/enchanting"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-accent-orange" />
+              <span>{isIt ? 'Incantesimi & Incudine' : 'Enchant Optimizer'}</span>
+            </Link>
+          </div>
         </div>
 
         {/* Stack Size Selector Bar (64 vs 16) */}
