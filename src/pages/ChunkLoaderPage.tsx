@@ -21,30 +21,15 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Badge } from '../components/ui/Badge';
-
-type ActiveOption = 'portal' | 'pearl' | 'player';
-type TargetDimension = 'overworld' | 'nether';
-type RequirementMode = 'entity' | 'redstone';
-
-interface LoaderPlacement {
-  index: number;
-  cx: number;
-  cz: number;
-  centerX: number;
-  centerZ: number;
-  pairedX: number;
-  pairedZ: number;
-  regionX: number;
-  regionZ: number;
-}
-
-interface SolutionResult {
-  option: ActiveOption;
-  placements: LoaderPlacement[];
-  primaryChunks: Set<string>;
-  secondaryChunks: Set<string>;
-  lazyChunks: Set<string>;
-}
+import {
+  chunkKey,
+  solveChunkLoaders,
+  toChunk,
+  type ActiveOption,
+  type LoaderPlacement,
+  type RequirementMode,
+  type TargetDimension,
+} from '../utils/chunkSolver';
 
 interface DragSelectionBox {
   startCX: number;
@@ -52,23 +37,6 @@ interface DragSelectionBox {
   currCX: number;
   currCZ: number;
   mode: 'add' | 'remove';
-}
-
-function keyOf(cx: number, cz: number): string {
-  return `${cx},${cz}`;
-}
-
-function parseKey(k: string): [number, number] {
-  const [x, z] = k.split(',').map(Number);
-  return [x, z];
-}
-
-function toChunk(blockCoord: number): number {
-  return Math.floor(blockCoord / 16);
-}
-
-function toRegion(chunkCoord: number): number {
-  return Math.floor(chunkCoord / 32);
 }
 
 function clampInt(val: number, min: number, max: number, fallback: number): number {
@@ -85,201 +53,11 @@ function getBoxBounds(box: DragSelectionBox) {
   };
 }
 
-function solveSetCover(
-  targets: Set<string>,
-  option: ActiveOption,
-  req: RequirementMode,
-  dimension: TargetDimension,
-  portalSide: number,
-  pearlSide: number,
-  simDistance: number
-): SolutionResult {
-  const empty: SolutionResult = {
-    option,
-    placements: [],
-    primaryChunks: new Set(),
-    secondaryChunks: new Set(),
-    lazyChunks: new Set(),
-  };
-  if (targets.size === 0) return empty;
-
-  const targetList = Array.from(targets).map(parseKey);
-
-  const side =
-    option === 'portal' ? portalSide : option === 'pearl' ? pearlSide : simDistance * 2 + 1;
-  const lo = -Math.floor((side - 1) / 2);
-  const hi = Math.ceil((side - 1) / 2);
-
-  const coversPoint = (cx: number, cz: number, tx: number, tz: number) => {
-    const dx = tx - cx;
-    const dz = tz - cz;
-    return dx >= lo && dx <= hi && dz >= lo && dz <= hi;
-  };
-
-  let chosenCenters: Array<[number, number]> = [];
-
-  if (side <= 1) {
-    chosenCenters = targetList.sort((a, b) => (a[1] !== b[1] ? a[1] - b[1] : a[0] - b[0]));
-  } else {
-    const minTX = Math.min(...targetList.map(([x]) => x));
-    const maxTX = Math.max(...targetList.map(([x]) => x));
-    const minTZ = Math.min(...targetList.map(([, z]) => z));
-    const maxTZ = Math.max(...targetList.map(([, z]) => z));
-
-    // Exact mathematical single-loader check for any square Chebyshev footprint
-    if (maxTX - minTX <= hi - lo && maxTZ - minTZ <= hi - lo) {
-      const cx = Math.round((maxTX - hi + (minTX - lo)) / 2);
-      const cz = Math.round((maxTZ - hi + (minTZ - lo)) / 2);
-      chosenCenters = [[cx, cz]];
-    } else {
-      const meanX = targetList.reduce((s, [x]) => s + x, 0) / targetList.length;
-      const meanZ = targetList.reduce((s, [, z]) => s + z, 0) / targetList.length;
-
-      const candidateMap = new Map<string, [number, number]>();
-      const step = side > 15 ? Math.max(1, Math.floor(side / 4)) : 1;
-      if (option === 'player') {
-        for (let cz = minTZ; cz <= maxTZ; cz += step) {
-          for (let cx = minTX; cx <= maxTX; cx += step) {
-            candidateMap.set(keyOf(cx, cz), [cx, cz]);
-          }
-        }
-        candidateMap.set(keyOf(Math.round(meanX), Math.round(meanZ)), [
-          Math.round(meanX),
-          Math.round(meanZ),
-        ]);
-      } else {
-        for (const [tx, tz] of targetList) {
-          for (let dcz = lo; dcz <= hi; dcz += step) {
-            for (let dcx = lo; dcx <= hi; dcx += step) {
-              const cx = tx - dcx;
-              const cz = tz - dcz;
-              candidateMap.set(keyOf(cx, cz), [cx, cz]);
-            }
-          }
-        }
-      }
-
-      const candidates = Array.from(candidateMap.values());
-      const uncovered = new Set<string>(targets);
-
-      while (uncovered.size > 0) {
-        const remList = Array.from(uncovered).map(parseKey);
-        const remMeanX = remList.reduce((s, [x]) => s + x, 0) / remList.length;
-        const remMeanZ = remList.reduce((s, [, z]) => s + z, 0) / remList.length;
-
-        let bestCand: [number, number] | null = null;
-        let bestCount = -1;
-        let bestTie = Infinity;
-
-        for (const [cx, cz] of candidates) {
-          let hitCount = 0;
-          for (const [tx, tz] of remList) {
-            if (coversPoint(cx, cz, tx, tz)) hitCount++;
-          }
-          if (hitCount === 0) continue;
-
-          const distScore =
-            (cx - remMeanX) ** 2 + (cz - remMeanZ) ** 2 - (targets.has(keyOf(cx, cz)) ? 0.15 : 0);
-          if (hitCount > bestCount || (hitCount === bestCount && distScore < bestTie)) {
-            bestCount = hitCount;
-            bestTie = distScore;
-            bestCand = [cx, cz];
-          }
-        }
-
-        if (!bestCand) break;
-        chosenCenters.push(bestCand);
-        for (const [tx, tz] of remList) {
-          if (coversPoint(bestCand[0], bestCand[1], tx, tz)) {
-            uncovered.delete(keyOf(tx, tz));
-          }
-        }
-      }
-
-      // Redundancy pruning pass
-      for (let i = chosenCenters.length - 1; i >= 0; i--) {
-        const subset = chosenCenters.filter((_, idx) => idx !== i);
-        const stillCovers = targetList.every(([tx, tz]) =>
-          subset.some(([cx, cz]) => coversPoint(cx, cz, tx, tz))
-        );
-        if (stillCovers) chosenCenters = subset;
-      }
-
-      chosenCenters.sort((a, b) => (a[1] !== b[1] ? a[1] - b[1] : a[0] - b[0]));
-    }
-  }
-
-  const primaryChunks = new Set<string>();
-  const secondaryChunks = new Set<string>();
-  const lazyChunks = new Set<string>();
-
-  for (const [cx, cz] of chosenCenters) {
-    if (option === 'player') {
-      const visR = Math.min(simDistance, 45);
-      for (let dz = -visR; dz <= visR; dz++) {
-        for (let dx = -visR; dx <= visR; dx++) {
-          primaryChunks.add(keyOf(cx + dx, cz + dz));
-        }
-      }
-    } else {
-      // Exact configured NxN footprint + 1-chunk outer redstone/border rings when using vanilla sizes
-      for (let dz = lo; dz <= hi; dz++) {
-        for (let dx = lo; dx <= hi; dx++) {
-          const k = keyOf(cx + dx, cz + dz);
-          if (req === 'entity') primaryChunks.add(k);
-          else secondaryChunks.add(k);
-        }
-      }
-      if (req === 'entity') {
-        for (let dz = lo - 1; dz <= hi + 1; dz++) {
-          for (let dx = lo - 1; dx <= hi + 1; dx++) {
-            const k = keyOf(cx + dx, cz + dz);
-            if (!primaryChunks.has(k)) secondaryChunks.add(k);
-          }
-        }
-        for (let dz = lo - 2; dz <= hi + 2; dz++) {
-          for (let dx = lo - 2; dx <= hi + 2; dx++) {
-            const k = keyOf(cx + dx, cz + dz);
-            if (!primaryChunks.has(k) && !secondaryChunks.has(k)) lazyChunks.add(k);
-          }
-        }
-      } else {
-        for (let dz = lo - 1; dz <= hi + 1; dz++) {
-          for (let dx = lo - 1; dx <= hi + 1; dx++) {
-            const k = keyOf(cx + dx, cz + dz);
-            if (!secondaryChunks.has(k)) lazyChunks.add(k);
-          }
-        }
-      }
-    }
-  }
-
-  const placements: LoaderPlacement[] = chosenCenters.map(([cx, cz], i) => {
-    const centerX = cx * 16 + 8;
-    const centerZ = cz * 16 + 8;
-    const pairedX = dimension === 'overworld' ? Math.floor(centerX / 8) : centerX * 8;
-    const pairedZ = dimension === 'overworld' ? Math.floor(centerZ / 8) : centerZ * 8;
-    return {
-      index: i + 1,
-      cx,
-      cz,
-      centerX,
-      centerZ,
-      pairedX,
-      pairedZ,
-      regionX: toRegion(cx),
-      regionZ: toRegion(cz),
-    };
-  });
-
-  return { option, placements, primaryChunks, secondaryChunks, lazyChunks };
-}
-
 function buildInitialPreset(): Set<string> {
   const s = new Set<string>();
   for (let dz = -1; dz <= 1; dz++) {
     for (let dx = -1; dx <= 1; dx++) {
-      s.add(keyOf(dx, dz));
+      s.add(chunkKey(dx, dz));
     }
   }
   return s;
@@ -346,7 +124,7 @@ export const ChunkLoaderPage: React.FC = () => {
         const next = new Set(prev);
         for (let cz = minZ; cz <= maxZ; cz++) {
           for (let cx = minX; cx <= maxX; cx++) {
-            const k = keyOf(cx, cz);
+            const k = chunkKey(cx, cz);
             if (dragBox.mode === 'add') next.add(k);
             else next.delete(k);
           }
@@ -378,15 +156,15 @@ export const ChunkLoaderPage: React.FC = () => {
 
   // Live solve ALL 3 options simultaneously
   const portalSolution = useMemo(
-    () => solveSetCover(selectedChunks, 'portal', reqMode, dimension, portalSide, pearlSide, simDistance),
+    () => solveChunkLoaders(selectedChunks, 'portal', reqMode, dimension, portalSide, pearlSide, simDistance),
     [selectedChunks, reqMode, dimension, portalSide, pearlSide, simDistance]
   );
   const pearlSolution = useMemo(
-    () => solveSetCover(selectedChunks, 'pearl', reqMode, dimension, portalSide, pearlSide, simDistance),
+    () => solveChunkLoaders(selectedChunks, 'pearl', reqMode, dimension, portalSide, pearlSide, simDistance),
     [selectedChunks, reqMode, dimension, portalSide, pearlSide, simDistance]
   );
   const playerSolution = useMemo(
-    () => solveSetCover(selectedChunks, 'player', reqMode, dimension, portalSide, pearlSide, simDistance),
+    () => solveChunkLoaders(selectedChunks, 'player', reqMode, dimension, portalSide, pearlSide, simDistance),
     [selectedChunks, reqMode, dimension, portalSide, pearlSide, simDistance]
   );
 
@@ -400,7 +178,7 @@ export const ChunkLoaderPage: React.FC = () => {
   const placementMap = useMemo(() => {
     const m = new Map<string, LoaderPlacement>();
     for (const p of activeSolution.placements) {
-      m.set(keyOf(p.cx, p.cz), p);
+      m.set(chunkKey(p.cx, p.cz), p);
     }
     return m;
   }, [activeSolution]);
@@ -720,7 +498,7 @@ export const ChunkLoaderPage: React.FC = () => {
             >
               {czRows.map((cz) =>
                 cxCols.map((cx) => {
-                  const k = keyOf(cx, cz);
+                  const k = chunkKey(cx, cz);
                   const isSelected = selectedChunks.has(k);
                   const placement = placementMap.get(k);
                   const isPrimary = activeSolution.primaryChunks.has(k);
