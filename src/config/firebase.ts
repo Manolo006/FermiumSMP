@@ -31,12 +31,12 @@ export const ADMIN_EMAILS_STORAGE_KEY = 'fermium_admin_emails_v1';
  * direttamente dal portale nascosto #/staff senza toccare il codice.
  */
 export const FIREBASE_WEB_CONFIG: FirebaseWebConfig = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: '',
+  apiKey: 'AIzaSyD7oC6mepLUMAjKUHrYeuW7iwcWL9bO8vU',
+  authDomain: 'fermiumsmp.firebaseapp.com',
+  projectId: 'fermiumsmp',
+  storageBucket: 'fermiumsmp.firebasestorage.app',
+  messagingSenderId: '1064523970006',
+  appId: '1:1064523970006:web:db6d9b600178f93c232077',
 };
 
 const BASE_ADMIN_EMAILS = ['manuelcarpita@gmail.com'];
