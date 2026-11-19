@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { Member, MemberRoleGroup, MemberStats } from '../../types';
 import type { MemberCardOriginRects } from './MemberCard';
+import { getMemberSkinUrls } from '../../data/members';
 import { useLanguage } from '../../i18n/LanguageContext';
 
 interface MemberStatsModalProps {
@@ -661,8 +662,22 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
   if (!member || !stats) return null;
 
   const theme = ROLE_THEME[member.roleGroup];
-  const bustSkinUrl = `https://nmsr.nickac.dev/bust/${encodeURIComponent(member.name)}`;
-  const activeSkinUrl = `https://nmsr.nickac.dev/${skinMode}/${encodeURIComponent(member.name)}`;
+  const bustCandidates = getMemberSkinUrls(member.name, 'bust', member.uuid);
+  const activeCandidates = getMemberSkinUrls(member.name, skinMode, member.uuid);
+  const bustSkinUrl = bustCandidates[0];
+  const activeSkinUrl = activeCandidates[0];
+
+  const handleSkinFallback = (
+    e: React.SyntheticEvent<HTMLImageElement>,
+    candidates: string[]
+  ) => {
+    const img = e.currentTarget;
+    const nextIdx = Number(img.dataset.fallbackIdx || '0') + 1;
+    if (nextIdx < candidates.length) {
+      img.dataset.fallbackIdx = String(nextIdx);
+      img.src = candidates[nextIdx];
+    }
+  };
   const safeCarpet = stats.carpetScore ?? 0;
   const safeMined = stats.blocksMined ?? 0;
   const topBlocks = Array.isArray(stats.topBlocks) ? stats.topBlocks : [];
@@ -902,8 +917,10 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
 
               <img
                 ref={settledSkinImgRef}
+                key={`${member.id}-${skinMode}`}
                 src={activeSkinUrl}
                 alt={member.name}
+                onError={(e) => handleSkinFallback(e, activeCandidates)}
                 className="gsap-morph-actor relative z-10 w-[86%] h-[86%] object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.85)] will-change-transform"
               />
             </div>
@@ -1076,9 +1093,11 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
       {/* Fixed Unclipped Flying Bust (Glides from card above pill -> Left pedestal!) */}
       <img
         ref={flightBustRef}
+        key={`flight-${member.id}`}
         src={bustSkinUrl}
         alt=""
         aria-hidden="true"
+        onError={(e) => handleSkinFallback(e, bustCandidates)}
         className="gsap-morph-actor fixed z-20 object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.85)] pointer-events-none hidden will-change-transform"
       />
 

@@ -4,6 +4,7 @@ export interface Member {
   id: string;
   name: string;
   roleGroup: MemberRoleGroup;
+  uuid?: string;
   customImageUrl?: string;
 }
 

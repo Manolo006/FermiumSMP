@@ -1,7 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import type { Member, MemberRoleGroup } from '../../types';
-import { getMemberBustUrl } from '../../data/members';
+import { getMemberSkinUrls } from '../../data/members';
 
 export interface MemberCardOriginRects {
   pillRect: DOMRect;
@@ -20,10 +20,21 @@ export const MemberCard: React.FC<MemberCardProps> = ({
   isHidden = false,
   onSelect,
 }) => {
-  const bustUrl = getMemberBustUrl(member);
+  const skinCandidates = useMemo(() => {
+    const fallbacks = getMemberSkinUrls(member.name, 'bust', member.uuid);
+    return member.customImageUrl ? [member.customImageUrl, ...fallbacks] : fallbacks;
+  }, [member.name, member.uuid, member.customImageUrl]);
+
+  const [skinUrlIdx, setSkinUrlIdx] = useState(0);
+  const bustUrl = skinCandidates[Math.min(skinUrlIdx, skinCandidates.length - 1)];
+
   const pillRef = useRef<HTMLDivElement | null>(null);
   const bustRef = useRef<HTMLImageElement | null>(null);
   const nameRef = useRef<HTMLSpanElement | null>(null);
+
+  const handleImageError = () => {
+    setSkinUrlIdx((prev) => (prev + 1 < skinCandidates.length ? prev + 1 : prev));
+  };
 
   const roleStyles: Record<
     MemberRoleGroup,
@@ -98,6 +109,7 @@ export const MemberCard: React.FC<MemberCardProps> = ({
           data-member-bust={member.id}
           src={bustUrl}
           alt={member.name}
+          onError={handleImageError}
           className="relative z-10 w-[88%] h-[88%] object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out-Quart group-hover:-translate-y-1.5 group-hover:scale-[1.03] pointer-events-none"
           loading="lazy"
         />

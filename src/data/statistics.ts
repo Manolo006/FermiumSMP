@@ -1,4 +1,5 @@
 import type { StatisticSlot } from '../types';
+import { membersList } from './members';
 
 export const WORLD_START_DATE = '2026-10-12T22:30:00+01:00';
 
@@ -17,7 +18,7 @@ export function getWorldAgeDays(): number {
 export const serverStatistics: StatisticSlot[] = [
   {
     id: 'members',
-    value: '9',
+    value: String(membersList.length),
     isPlaceholder: false,
   },
   {

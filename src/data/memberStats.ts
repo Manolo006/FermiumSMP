@@ -121,21 +121,6 @@ export const defaultMemberStats: MemberStats[] = [
       { id: 'white_concrete', label: 'Concrete', count: 145200 },
     ],
   },
-  {
-    name: 'capo_rg5',
-    playTimeHours: 162.4,
-    blocksMined: 1042150,
-    blocksPlaced: 294300,
-    deaths: 13,
-    mobKills: 19340,
-    distanceKm: 894.1,
-    carpetScore: 1336450,
-    topBlocks: [
-      { id: 'stone', label: 'Stone', count: 486200 },
-      { id: 'deepslate', label: 'Deepslate', count: 332900 },
-      { id: 'netherrack', label: 'Netherrack', count: 138400 },
-    ],
-  },
 ];
 
 export function buildFallbackStatsForName(name: string): MemberStats {

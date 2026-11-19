@@ -13,6 +13,7 @@ import {
   extractYouTubeId,
   extractTikTokVideoId,
 } from '../../data/media';
+import { getMemberSkinUrls } from '../../data/members';
 import { checkYouTubeChannelsLive } from '../../utils/youtubeLiveCheck';
 import type { StreamerCreator, MemberRoleGroup } from '../../types';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -405,9 +406,15 @@ export const MediaSection: React.FC = () => {
                           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-text-primary transition-all cursor-pointer active:scale-[0.96]"
                         >
                           <img
-                            src={`https://nmsr.nickac.dev/bust/${encodeURIComponent(
-                              c.name
-                            )}`}
+                            src={getMemberSkinUrls(c.name, 'bust')[0]}
+                            onError={(e) => {
+                              const urls = getMemberSkinUrls(c.name, 'bust');
+                              const nextIdx = Number(e.currentTarget.dataset.fb || '0') + 1;
+                              if (nextIdx < urls.length) {
+                                e.currentTarget.dataset.fb = String(nextIdx);
+                                e.currentTarget.src = urls[nextIdx];
+                              }
+                            }}
                             alt={c.name}
                             className="w-4 h-4 object-contain"
                           />
@@ -424,9 +431,15 @@ export const MediaSection: React.FC = () => {
                 <div className="mt-2.5 px-2 py-1.5 flex flex-wrap items-center justify-between gap-3 text-left">
                   <div className="flex items-center gap-3 min-w-0">
                     <img
-                      src={`https://nmsr.nickac.dev/bust/${encodeURIComponent(
-                        activeCreator.name
-                      )}`}
+                      src={getMemberSkinUrls(activeCreator.name, 'bust')[0]}
+                      onError={(e) => {
+                        const urls = getMemberSkinUrls(activeCreator.name, 'bust');
+                        const nextIdx = Number(e.currentTarget.dataset.fb || '0') + 1;
+                        if (nextIdx < urls.length) {
+                          e.currentTarget.dataset.fb = String(nextIdx);
+                          e.currentTarget.src = urls[nextIdx];
+                        }
+                      }}
                       alt={activeCreator.name}
                       className="w-9 h-9 rounded-lg bg-white/[0.04] p-0.5 object-contain shrink-0"
                     />
@@ -549,9 +562,15 @@ export const MediaSection: React.FC = () => {
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="relative w-10 h-10 rounded-lg bg-[#101216] border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
                             <img
-                              src={`https://nmsr.nickac.dev/bust/${encodeURIComponent(
-                                creator.name
-                              )}`}
+                              src={getMemberSkinUrls(creator.name, 'bust')[0]}
+                              onError={(e) => {
+                                const urls = getMemberSkinUrls(creator.name, 'bust');
+                                const nextIdx = Number(e.currentTarget.dataset.fb || '0') + 1;
+                                if (nextIdx < urls.length) {
+                                  e.currentTarget.dataset.fb = String(nextIdx);
+                                  e.currentTarget.src = urls[nextIdx];
+                                }
+                              }}
                               alt={creator.name}
                               className="w-9 h-9 object-contain"
                               loading="lazy"

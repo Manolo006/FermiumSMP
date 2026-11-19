@@ -10,12 +10,12 @@ Built with **React 19**, **TypeScript**, **Vite 8**, **Tailwind CSS 3**, **GSAP*
 
 The interface departs from generic gaming templates by adopting an authentic **engineered command center** aesthetic inspired by precision architectural blueprints and server telemetry:
 
-- **Monochrome Foundation**: `#0B0D10` (Base) and `#101216` (Main) surfaces with `#181C23` elevation panels.
-- **Surgical Orange Accents**: `#F08A36` reserved for critical telemetry, interactive highlights, and active states.
+- **Obsidian Dark-Glass Foundation**: `#0B0F14` (Main) and `#11161F` (Secondary) surfaces with `#161C26` elevation panels.
+- **Cyan Accents**: `#22D3EE` reserved for critical telemetry, interactive highlights, and active states.
 - **Role Border Hierarchy**:
-  - **Server Owners** (`jenktland3`, `redpl4yer`, `poncher`, `drp1n`, `ohluck_`, `supercece9`): Light blue `#60A5FA` (`border-blue-400`).
-  - **Members** (`lollo235_`): Light azure `#38BDF8` (`border-sky-300`).
-  - **Trial** (`manolo006`): Yellow `#FACC15` (`border-yellow-400`).
+  - **Server Owners** (`jenktland3`, `REDpl4yers`, `poncher`, `drp1n`, `supercece_`): Light blue `#60A5FA` (`border-blue-400`).
+  - **Members** (`ohluck_`, `lollo235_`, `Manolo006`): Light azure `#38BDF8` (`border-sky-300`).
+  - **Trial**: Yellow `#FACC15` (`border-yellow-400`).
 - **Typography Matrix**:
   - Headings: `Space Grotesk`
   - Body: `Inter`

@@ -35,6 +35,7 @@ export const MembersPreview: React.FC = () => {
           .map((item) => ({
             id: (item.id || item.name).toLowerCase(),
             name: item.name.trim(),
+            uuid: typeof item.uuid === 'string' ? item.uuid.trim() : undefined,
             roleGroup:
               item.roleGroup === 'owner' || item.roleGroup === 'member' || item.roleGroup === 'trial'
                 ? item.roleGroup

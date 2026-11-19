@@ -414,16 +414,35 @@ export const WorldMapPage: React.FC = () => {
                   {isIt ? (
                     <>
                       Il sito è collegato a{' '}
-                      <code className="text-accent-cyan break-all">{BLUEMAP_SITE_URL}</code>. Carica su
-                      quel repository i file preparati nella cartella Desktop <code className="text-text-primary">FermiumSMP-Map</code> e attiva GitHub Pages sul branch <code className="text-text-primary">main</code>.
+                      <code className="text-accent-cyan break-all">{BLUEMAP_SITE_URL}</code>, ma quel
+                      repository GitHub non è stato ancora creato/pubblicato. Crea il repository{' '}
+                      <code className="text-text-primary">FermiumSMP-Map</code> su GitHub, pusha la
+                      cartella Desktop <code className="text-text-primary">FermiumSMP-Map</code> e
+                      attiva GitHub Pages sul branch <code className="text-text-primary">main</code>.
                     </>
                   ) : (
                     <>
                       This page points to{' '}
-                      <code className="text-accent-cyan break-all">{BLUEMAP_SITE_URL}</code>. Push the prepared <code className="text-text-primary">FermiumSMP-Map</code> folder and enable GitHub Pages on branch <code className="text-text-primary">main</code>.
+                      <code className="text-accent-cyan break-all">{BLUEMAP_SITE_URL}</code>, which
+                      has not been published yet. Create the{' '}
+                      <code className="text-text-primary">FermiumSMP-Map</code> repository on GitHub,
+                      push the Desktop <code className="text-text-primary">FermiumSMP-Map</code>{' '}
+                      folder, and enable GitHub Pages on branch{' '}
+                      <code className="text-text-primary">main</code>.
                     </>
                   )}
                 </p>
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5">
+                  <a
+                    href="https://github.com/new?name=FermiumSMP-Map&visibility=public"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-cyan text-[#061018] font-heading font-semibold text-xs hover:bg-accent-cyan-hover transition-colors"
+                  >
+                    <span>{isIt ? 'Crea Repo FermiumSMP-Map su GitHub' : 'Create FermiumSMP-Map on GitHub'}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
               </div>
             </div>
           )}

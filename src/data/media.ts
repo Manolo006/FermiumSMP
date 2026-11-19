@@ -28,7 +28,7 @@ export const streamerCreators: StreamerCreator[] = [
   {
     memberId: 'manolo006',
     name: 'Manolo006',
-    roleGroup: 'trial',
+    roleGroup: 'member',
     twitchChannel: 'manolo_0006',
     youtubeChannelId: 'UCVypoAS4yRiwc9mASfNeu0g',
     youtubeUrl: 'https://www.youtube.com/@Manolo006',
@@ -43,7 +43,7 @@ export const streamerCreators: StreamerCreator[] = [
   {
     memberId: 'ohluck_',
     name: 'ohluck_',
-    roleGroup: 'owner',
+    roleGroup: 'member',
     youtubeChannelId: 'UCG1b0T9S4720yN_ANAHaw8A',
     youtubeUrl: 'https://www.youtube.com/@ohluck_',
   },
