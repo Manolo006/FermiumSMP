@@ -8,11 +8,13 @@ import {
   signOut,
   type User,
 } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore';
 import {
+  getAllowedAdminEmails,
   getFirebaseServices,
   isAllowedAdminEmail,
   isFirebaseConfigured,
+  saveRuntimeAdminEmails,
 } from '../config/firebase';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -97,6 +99,28 @@ function toStoredSession(user: User): StoredAdminSession {
   };
 }
 
+async function verifyAdminWithFirestore(db: Firestore, user: User): Promise<boolean> {
+  if (!user.email || user.emailVerified === false) return false;
+  const email = user.email.trim().toLowerCase();
+  try {
+    const snap = await getDoc(doc(db, 'cms_meta', 'admins'));
+    const docEmails =
+      snap.exists() && Array.isArray(snap.data()?.emails)
+        ? (snap.data().emails as unknown[]).filter(
+            (v): v is string => typeof v === 'string' && v.includes('@')
+          )
+        : [];
+    saveRuntimeAdminEmails([...getAllowedAdminEmails(), ...docEmails, email]);
+    return true;
+  } catch (err: unknown) {
+    const code = (err as { code?: string })?.code || '';
+    if (code === 'permission-denied') {
+      return false;
+    }
+    return isAllowedAdminEmail(email);
+  }
+}
+
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { lang } = useLanguage();
   const isIt = lang === 'it';
@@ -127,14 +151,16 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
 
-    const { auth } = services;
+    const { auth, db } = services;
     let active = true;
 
     // Gestisce eventuale rientro da signInWithRedirect su browser mobili / popup bloccati
     getRedirectResult(auth)
       .then(async (res) => {
         if (!active || !res?.user) return;
-        if (!isAllowedAdminEmail(res.user.email)) {
+        const allowed = await verifyAdminWithFirestore(db, res.user);
+        if (!active) return;
+        if (!allowed) {
           await signOut(auth);
           writeStoredAdminSession(null);
           setAdminUser(null);
@@ -165,7 +191,9 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (!active) return;
 
         if (user) {
-          if (user.emailVerified !== false && isAllowedAdminEmail(user.email)) {
+          const allowed = await verifyAdminWithFirestore(db, user);
+          if (!active) return;
+          if (allowed) {
             const session = toStoredSession(user);
             writeStoredAdminSession(session);
             setAdminUser(session);
@@ -180,8 +208,8 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             setFirebaseVerified(false);
             setAuthError(
               isIt
-                ? `L'account ${user.email || ''} non è nella lista Owner autorizzati.`
-                : `Account ${user.email || ''} is not in the authorized Owner list.`
+                ? `L'account ${user.email || ''} non è autorizzato su Firebase (cms_meta/admins).`
+                : `Account ${user.email || ''} is not authorized in Firebase (cms_meta/admins).`
             );
           }
         } else {
@@ -206,8 +234,8 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!services) {
       setAuthError(
         isIt
-          ? 'Firebase non è ancora collegato. Inserisci la configurazione Firebase qui sotto.'
-          : 'Firebase is not configured yet. Paste your Firebase Web config below.'
+          ? 'Firebase non è ancora collegato. Apri "Collega Firebase" qui sotto e incolla il blocco firebaseConfig.'
+          : 'Firebase is not connected yet. Open "Connect Firebase" below and paste your firebaseConfig.'
       );
       return;
     }
@@ -219,7 +247,8 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const result = await signInWithPopup(services.auth, provider);
       const user = result.user;
 
-      if (!isAllowedAdminEmail(user.email)) {
+      const allowed = await verifyAdminWithFirestore(services.db, user);
+      if (!allowed) {
         await signOut(services.auth).catch(() => {});
         writeStoredAdminSession(null);
         setAdminUser(null);
