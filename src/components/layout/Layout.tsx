@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUp } from 'lucide-react';
 import { Navbar } from '../navigation/Navbar';
 import { Footer } from './Footer';
+import { AdminFloatingBar } from '../admin/AdminFloatingBar';
 import { useLanguage } from '../../i18n/LanguageContext';
 
 interface LayoutProps {
@@ -11,12 +12,24 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { t } = useLanguage();
   const [showBackTop, setShowBackTop] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        navigate('/staff');
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [navigate]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -37,6 +50,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {children}
       </main>
       <Footer />
+      <AdminFloatingBar />
 
       {/* Back-to-top floating control */}
       <button

@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Users, FolderGit2, Zap, Clock } from 'lucide-react';
 import { serverStatistics, getWorldAgeDays } from '../../data/statistics';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { useSiteContent } from '../../context/SiteContentContext';
 
 export const Statistics: React.FC = () => {
   const { t, lang } = useLanguage();
+  const { members, projects } = useSiteContent();
   const [worldDays, setWorldDays] = useState<number>(() => getWorldAgeDays());
 
   useEffect(() => {
@@ -49,6 +51,10 @@ export const Statistics: React.FC = () => {
                 ? lang === 'it'
                   ? `${worldDays} gg`
                   : `${worldDays}d`
+                : stat.id === 'members'
+                ? String(members.length)
+                : stat.id === 'projects'
+                ? String(projects.length)
                 : stat.value;
 
             return (

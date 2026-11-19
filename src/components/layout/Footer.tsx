@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import fermiumLogo from '../../assets/logo/Fermium_logo.png';
 import { DISCORD_INVITE_URL } from '../../config/links';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -147,8 +148,18 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Copyright */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-text-muted">
-          <div>
-            &copy; {new Date().getFullYear()} Fermium SMP. {t.footer.rights}
+          <div className="flex items-center gap-2">
+            <span>
+              &copy; {new Date().getFullYear()} Fermium SMP. {t.footer.rights}
+            </span>
+            <Link
+              to="/staff"
+              aria-label="Staff portal"
+              title="Staff"
+              className="inline-flex items-center justify-center p-1 rounded text-text-muted opacity-30 hover:opacity-80 hover:text-accent-cyan transition-opacity"
+            >
+              <Lock className="w-3 h-3" />
+            </Link>
           </div>
           <div className="text-center sm:text-right">{t.footer.disclaimer}</div>
         </div>

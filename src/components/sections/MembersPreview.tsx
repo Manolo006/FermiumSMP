@@ -1,51 +1,38 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Search, X } from 'lucide-react';
+import { BarChart3, Search, UserPlus, X } from 'lucide-react';
 import type { Member, MemberRoleGroup, MemberStats } from '../../types';
-import { membersList as defaultMembers, sortMembersByRole } from '../../data/members';
 import {
   buildFallbackStatsForName,
   defaultMemberStats,
 } from '../../data/memberStats';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { useAdminAuth } from '../../context/AdminAuthContext';
+import { useSiteContent } from '../../context/SiteContentContext';
 import { Badge } from '../ui/Badge';
 import { MemberCard, type MemberCardOriginRects } from '../ui/MemberCard';
 import { MemberStatsModal } from '../ui/MemberStatsModal';
+import { MemberFormModal } from '../admin/AdminModals';
 
 type MemberRoleFilter = 'all' | MemberRoleGroup;
 
 export const MembersPreview: React.FC = () => {
-  const { t } = useLanguage();
-  const [members, setMembers] = useState<Member[]>(defaultMembers);
+  const { t, lang } = useLanguage();
+  const isIt = lang === 'it';
+  const { isAdmin } = useAdminAuth();
+  const { members, saveMember, deleteMember } = useSiteContent();
+
   const [statsList, setStatsList] = useState<MemberStats[]>(defaultMemberStats);
   const [roleFilter, setRoleFilter] = useState<MemberRoleFilter>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [originMetrics, setOriginMetrics] = useState<MemberCardOriginRects | null>(null);
+  const [memberModalOpen, setMemberModalOpen] = useState<boolean>(false);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const bust = Date.now();
-
-    fetch(`./members.json?t=${bust}`, { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled || !Array.isArray(data)) return;
-        const parsed: Member[] = data
-          .filter((item) => item && typeof item.name === 'string')
-          .map((item) => ({
-            id: (item.id || item.name).toLowerCase(),
-            name: item.name.trim(),
-            uuid: typeof item.uuid === 'string' ? item.uuid.trim() : undefined,
-            roleGroup:
-              item.roleGroup === 'owner' || item.roleGroup === 'member' || item.roleGroup === 'trial'
-                ? item.roleGroup
-                : 'member',
-          }));
-        if (parsed.length > 0) {
-          setMembers(sortMembersByRole(parsed));
-        }
-      })
-      .catch(() => {});
 
     fetch(`./stats.json?t=${bust}`, { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
@@ -64,6 +51,19 @@ export const MembersPreview: React.FC = () => {
       cancelled = true;
     };
   }, []);
+
+  const handleDeleteMember = async (member: Member) => {
+    const confirmMsg = isIt
+      ? `Rimuovere "${member.name}" dai membri di Fermium SMP?`
+      : `Remove "${member.name}" from Fermium SMP members?`;
+    if (!window.confirm(confirmMsg)) return;
+    setActionError(null);
+    try {
+      await deleteMember(member.id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   const statsMap = useMemo(() => {
     const map = new Map<string, MemberStats>();
@@ -161,32 +161,62 @@ export const MembersPreview: React.FC = () => {
             </p>
           </div>
 
-          {/* Search Input */}
-          <div className="relative w-full lg:w-72 shrink-0">
-            <label htmlFor="member-search" className="sr-only">
-              {t.members.searchPlaceholder}
-            </label>
-            <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              id="member-search"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t.members.searchPlaceholder}
-              className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-base sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/60 transition-colors"
-            />
-            {searchQuery && (
+          {/* Search Input + Admin Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full lg:w-auto shrink-0">
+            <div className="relative w-full sm:w-64 lg:w-72">
+              <label htmlFor="member-search" className="sr-only">
+                {t.members.searchPlaceholder}
+              </label>
+              <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                id="member-search"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t.members.searchPlaceholder}
+                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-base sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/60 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label={t.members.clearFilters}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.06] cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {isAdmin && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label={t.members.clearFilters}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.06] cursor-pointer"
+                onClick={() => {
+                  setEditingMember(null);
+                  setMemberModalOpen(true);
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent-cyan text-[#061018] font-heading font-semibold text-xs sm:text-sm hover:bg-accent-cyan-hover shadow-glow-cyan transition-all cursor-pointer active:scale-[0.97] whitespace-nowrap"
               >
-                <X className="w-3.5 h-3.5" />
+                <UserPlus className="w-4 h-4" />
+                <span>{isIt ? '+ Aggiungi Membro' : '+ Add Member'}</span>
               </button>
             )}
           </div>
         </div>
+
+        {actionError && (
+          <div className="mb-6 rounded-xl border border-rose-500/35 bg-rose-500/10 px-4 py-2.5 text-xs text-rose-200 flex items-center justify-between gap-3">
+            <span>{actionError}</span>
+            <button
+              type="button"
+              onClick={() => setActionError(null)}
+              className="text-rose-200/80 hover:text-white cursor-pointer"
+              aria-label="Chiudi errore"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Role Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mb-8">
@@ -230,6 +260,12 @@ export const MembersPreview: React.FC = () => {
                 key={member.id}
                 member={member}
                 isHidden={selectedMember?.id === member.id}
+                isAdmin={isAdmin}
+                onEdit={(m) => {
+                  setEditingMember(m);
+                  setMemberModalOpen(true);
+                }}
+                onDelete={handleDeleteMember}
                 onSelect={(m, metrics) => {
                   setOriginMetrics(metrics);
                   setSelectedMemberId(m.id);
@@ -276,6 +312,16 @@ export const MembersPreview: React.FC = () => {
           const nextIdx = (selectedGlobalIdx + 1) % members.length;
           setSelectedMemberId(members[nextIdx].id);
         }}
+      />
+
+      <MemberFormModal
+        isOpen={memberModalOpen}
+        initialMember={editingMember}
+        onClose={() => {
+          setMemberModalOpen(false);
+          setEditingMember(null);
+        }}
+        onSave={saveMember}
       />
     </section>
   );

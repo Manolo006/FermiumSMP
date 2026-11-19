@@ -11,17 +11,26 @@ import {
   Images,
   Layers,
   Maximize2,
+  Pencil,
   RotateCcw,
   RotateCw,
   Search,
   Sparkles,
+  Trash2,
+  Upload,
   X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
+import {
+  useSiteContent,
+  type ManagedSchematicItem,
+} from '../context/SiteContentContext';
 import { Badge } from '../components/ui/Badge';
 import { ToolsSubNav } from '../components/navigation/ToolsSubNav';
+import { SchematicFormModal } from '../components/admin/AdminModals';
 import {
   parseLitematicFromUrl,
   type ParsedLitematic,
@@ -33,24 +42,7 @@ import {
 } from '../utils/litematicIsometric';
 import { ensureMinecraftTextures } from '../utils/litematicTextures';
 
-interface SchematicItem {
-  id?: string;
-  name: string;
-  author?: string;
-  origin?: 'fermium' | 'external';
-  category?: string;
-  dimensions?: string;
-  blocks?: number;
-  size?: string;
-  format?: string;
-  description?: string;
-  image?: string;
-  imageUrl?: string;
-  images?: string[];
-  fileName?: string;
-  fileUrl?: string;
-  url?: string;
-}
+type SchematicItem = ManagedSchematicItem;
 
 interface LightboxState {
   item: SchematicItem;
@@ -76,13 +68,21 @@ function getManualImages(item: SchematicItem): string[] {
   return Array.from(unique);
 }
 
-function isLitematicFile(url: string): boolean {
-  return url.toLowerCase().split('?')[0].endsWith('.litematic');
+function isLitematicFile(url: string, fileName?: string): boolean {
+  const cleanUrl = url.toLowerCase().split('?')[0];
+  return (
+    cleanUrl.endsWith('.litematic') ||
+    cleanUrl.startsWith('data:application/octet-stream') ||
+    Boolean(fileName && fileName.toLowerCase().endsWith('.litematic'))
+  );
 }
 
 interface SchematicCardProps {
   item: SchematicItem;
   isIt: boolean;
+  isAdmin?: boolean;
+  onEdit?: (item: SchematicItem) => void;
+  onDelete?: (item: SchematicItem) => void;
   onOpenLightbox: (
     item: SchematicItem,
     manualImages: string[],
@@ -94,6 +94,9 @@ interface SchematicCardProps {
 const SchematicCard: React.FC<SchematicCardProps> = ({
   item,
   isIt,
+  isAdmin = false,
+  onEdit,
+  onDelete,
   onOpenLightbox,
 }) => {
   const manualImages = useMemo(() => getManualImages(item), [item]);
@@ -110,7 +113,8 @@ const SchematicCard: React.FC<SchematicCardProps> = ({
   );
 
   const href = item.fileUrl || item.url || '#';
-  const canAutoRender = validManual.length === 0 && isLitematicFile(href);
+  const canAutoRender =
+    validManual.length === 0 && isLitematicFile(href, item.fileName);
 
   // Lazy-trigger isometric generation only when card enters viewport
   useEffect(() => {
@@ -304,16 +308,41 @@ const SchematicCard: React.FC<SchematicCardProps> = ({
         )}
       </div>
 
-      <a
-        href={href}
-        download={item.fileName || true}
-        className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent-cyan text-[#061018] font-heading font-semibold text-xs sm:text-sm hover:bg-accent-cyan-hover transition-all"
-      >
-        <Download className="w-4 h-4" />
-        <span>
-          {isIt ? 'Scarica .litematic' : 'Download .litematic'}
-        </span>
-      </a>
+      <div className="mt-4 flex items-center gap-2">
+        <a
+          href={href}
+          download={item.fileName || true}
+          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent-cyan text-[#061018] font-heading font-semibold text-xs sm:text-sm hover:bg-accent-cyan-hover transition-all"
+        >
+          <Download className="w-4 h-4" />
+          <span>
+            {isIt ? 'Scarica .litematic' : 'Download .litematic'}
+          </span>
+        </a>
+
+        {isAdmin && (
+          <>
+            <button
+              type="button"
+              onClick={() => onEdit?.(item)}
+              aria-label={isIt ? `Modifica ${item.name}` : `Edit ${item.name}`}
+              title={isIt ? 'Modifica schematic' : 'Edit schematic'}
+              className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-text-secondary hover:text-accent-cyan hover:border-accent-cyan/45 transition-colors cursor-pointer"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete?.(item)}
+              aria-label={isIt ? `Elimina ${item.name}` : `Delete ${item.name}`}
+              title={isIt ? 'Elimina schematic' : 'Delete schematic'}
+              className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-text-secondary hover:text-rose-400 hover:border-rose-500/45 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 };
@@ -348,7 +377,9 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
   const [parsed, setParsed] = useState<ParsedLitematic | null>(null);
 
   const href = state ? state.item.fileUrl || state.item.url || '#' : '';
-  const hasLitematic = state ? isLitematicFile(href) : false;
+  const hasLitematic = state
+    ? isLitematicFile(href, state.item.fileName)
+    : false;
 
   // Reset camera controls when opening a different schematic
   useEffect(() => {
@@ -777,23 +808,29 @@ const SchematicLightbox: React.FC<SchematicLightboxProps> = ({
 export const ArchivePage: React.FC = () => {
   const { lang } = useLanguage();
   const isIt = lang === 'it';
-  const [schematics, setSchematics] = useState<SchematicItem[]>([]);
+  const { isAdmin } = useAdminAuth();
+  const { schematics, saveSchematic, deleteSchematic } = useSiteContent();
+
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
+  const [schemModalOpen, setSchemModalOpen] = useState<boolean>(false);
+  const [editingSchematic, setEditingSchematic] =
+    useState<ManagedSchematicItem | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch(`./schematics.json?t=${Date.now()}`, { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setSchematics(
-            data.filter((item) => item && item.name && (item.fileUrl || item.url))
-          );
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const handleDeleteSchematic = async (item: SchematicItem) => {
+    const msg = isIt
+      ? `Eliminare la schematic "${item.name}" dall'archivio?`
+      : `Delete schematic "${item.name}" from archive?`;
+    if (!window.confirm(msg)) return;
+    setActionError(null);
+    try {
+      await deleteSchematic(item.id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
@@ -877,6 +914,12 @@ export const ArchivePage: React.FC = () => {
               key={item.id || `${variant}-${idx}`}
               item={item}
               isIt={isIt}
+              isAdmin={isAdmin}
+              onEdit={(target) => {
+                setEditingSchematic(target);
+                setSchemModalOpen(true);
+              }}
+              onDelete={handleDeleteSchematic}
               onOpenLightbox={(targetItem, manualImages, index, mode) =>
                 setLightbox({ item: targetItem, manualImages, index, mode })
               }
@@ -908,23 +951,55 @@ export const ArchivePage: React.FC = () => {
             </p>
           </div>
 
-          {schematics.length > 0 && (
-            <div className="relative w-full md:w-72">
-              <label htmlFor="schematic-search" className="sr-only">
-                {isIt ? 'Cerca schematic o autore' : 'Search schematic or author'}
-              </label>
-              <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                id="schematic-search"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={isIt ? 'Cerca schematic o autore...' : 'Search schematic or author...'}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-base sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/60 transition-colors"
-              />
+          {(schematics.length > 0 || isAdmin) && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto shrink-0">
+              {schematics.length > 0 && (
+                <div className="relative w-full sm:w-64 md:w-72">
+                  <label htmlFor="schematic-search" className="sr-only">
+                    {isIt ? 'Cerca schematic o autore' : 'Search schematic or author'}
+                  </label>
+                  <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    id="schematic-search"
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={isIt ? 'Cerca schematic o autore...' : 'Search schematic or author...'}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-base sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/60 transition-colors"
+                  />
+                </div>
+              )}
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingSchematic(null);
+                    setSchemModalOpen(true);
+                  }}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent-cyan text-[#061018] font-heading font-semibold text-xs sm:text-sm hover:bg-accent-cyan-hover shadow-glow-cyan transition-all cursor-pointer active:scale-[0.97] whitespace-nowrap"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>{isIt ? '+ Carica .litematic' : '+ Upload .litematic'}</span>
+                </button>
+              )}
             </div>
           )}
         </div>
+
+        {actionError && (
+          <div className="mb-6 rounded-xl border border-rose-500/35 bg-rose-500/10 px-4 py-2.5 text-xs text-rose-200 flex items-center justify-between gap-3">
+            <span>{actionError}</span>
+            <button
+              type="button"
+              onClick={() => setActionError(null)}
+              className="text-rose-200/80 hover:text-white cursor-pointer"
+              aria-label="Chiudi errore"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {categories.length > 2 && (
           <div className="flex flex-wrap items-center gap-2 mb-10">
@@ -1000,6 +1075,16 @@ export const ArchivePage: React.FC = () => {
         onChangeState={(updater) =>
           setLightbox((prev) => (prev ? updater(prev) : null))
         }
+      />
+
+      <SchematicFormModal
+        isOpen={schemModalOpen}
+        initialSchematic={editingSchematic}
+        onClose={() => {
+          setSchemModalOpen(false);
+          setEditingSchematic(null);
+        }}
+        onSave={saveSchematic}
       />
     </div>
   );

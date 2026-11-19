@@ -1,0 +1,550 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following Cloud Firestore collections
+// for the Fermium SMP website CMS.
+//
+// NOTE ON PUBLIC READS:
+// The five CMS content collections below (cms_members, cms_projects, cms_gallery,
+// cms_videos, cms_schematics) are explicitly configured for public unauthenticated
+// read access so the public Fermium SMP portal renders live CMS content without
+// requiring visitor login. None of these collections store PII (only public
+// Minecraft usernames, public Mojang UUIDs, builds, media links, and .litematic files).
+// Admin allowlist emails (PII) are isolated in cms_meta/admins and readable ONLY
+// by verified Fermium admins.
+//
+// Collection: cms_members
+// Document ID: member slug or Firestore auto-ID
+// Fields:
+//   - id: string (optional, 1..100 chars) - logical item identifier
+//   - name: string (required unless deleted == true, 1..40 chars) - Minecraft username
+//   - roleGroup: string (required unless deleted == true, enum: 'owner' | 'member' | 'trial')
+//   - uuid: string (optional, empty or 32/36-char Mojang hex UUID)
+//   - customImageUrl: string (optional, empty, http(s), safe relative path, or raster data URL <= 950KB)
+//   - deleted: bool (optional, tombstone flag; when true, active fields may be omitted)
+//   - order: int (optional, 0..10000)
+//   - slotNumber: int (optional, 0..10000)
+//   - createdAt: timestamp (optional, immutable after creation)
+//   - updatedAt: timestamp (optional)
+//   - createdBy: string (optional, <= 120 chars, matches creator auth uid/email, immutable)
+//   - updatedBy: string (optional, <= 120 chars, matches updater auth uid/email)
+//
+// Collection: cms_projects
+// Document ID: project slug or Firestore auto-ID
+// Fields:
+//   - id: string (optional, 1..100 chars)
+//   - slotNumber: int (optional, 0..10000)
+//   - order: int (optional, 0..10000)
+//   - category: string (required unless deleted == true, enum: 'farms' | 'redstone' | 'infrastructure' | 'perimeters' | 'storage' | 'megabuilds')
+//   - titleIt: string (required unless deleted == true, 1..160 chars)
+//   - titleEn: string (required unless deleted == true, 1..160 chars)
+//   - descIt: string (required unless deleted == true, 1..2000 chars)
+//   - descEn: string (required unless deleted == true, 1..2000 chars)
+//   - coverImage: string (optional, empty, http(s), safe relative path, or raster data URL <= 950KB)
+//   - imageUrl: string (optional, alias of coverImage, same constraints)
+//   - deleted: bool (optional, tombstone flag)
+//   - createdAt, updatedAt, createdBy, updatedBy (optional audit fields)
+//
+// Collection: cms_gallery
+// Document ID: gallery slot ID or Firestore auto-ID
+// Fields:
+//   - id: string (optional, 1..100 chars)
+//   - slotNumber: int (optional, 0..10000)
+//   - order: int (optional, 0..10000)
+//   - aspectClass: string (optional, 0..100 chars)
+//   - imageUrl: string (required unless deleted == true, http(s), safe relative path, or raster data URL <= 950KB)
+//   - title, titleIt, titleEn: string (optional, 0..160 chars)
+//   - caption: string (optional, 0..500 chars)
+//   - deleted: bool (optional, tombstone flag)
+//   - createdAt, updatedAt, createdBy, updatedBy (optional audit fields)
+//
+// Collection: cms_videos
+// Document ID: video slot ID or Firestore auto-ID
+// Fields:
+//   - id: string (optional, 1..100 chars)
+//   - url: string (required unless deleted == true, http(s) URL, 8..500 chars)
+//   - videoUrl: string (optional, empty or http(s) URL <= 500 chars)
+//   - platform: string (optional, enum: 'youtube' | 'tiktok')
+//   - title: string (optional, 0..200 chars)
+//   - creatorName: string (optional, 0..80 chars)
+//   - dateLabel: string (optional, 0..40 chars)
+//   - slotNumber: int (optional, 0..10000)
+//   - order: int (optional, 0..10000)
+//   - deleted: bool (optional, tombstone flag)
+//   - createdAt, updatedAt, createdBy, updatedBy (optional audit fields)
+//
+// Collection: cms_schematics
+// Document ID: schematic slug or Firestore auto-ID
+// Fields:
+//   - id: string (optional, 1..100 chars)
+//   - name: string (required unless deleted == true, 1..160 chars)
+//   - fileUrl: string (required unless deleted == true, http(s), safe relative path, or application/octet-stream base64 data URL <= 950KB)
+//   - url: string (optional, empty or same constraints as fileUrl)
+//   - author: string (optional, 0..100 chars)
+//   - origin: string (optional, enum: 'fermium' | 'external')
+//   - category: string (optional, 0..80 chars)
+//   - dimensions: string (optional, 0..80 chars)
+//   - blocks: number (optional, 0..2000000000)
+//   - size: string (optional, 0..40 chars)
+//   - format: string (optional, 0..30 chars)
+//   - description: string (optional, 0..2000 chars)
+//   - image: string (optional, empty, http(s), safe relative path, or raster data URL <= 950KB)
+//   - imageUrl: string (optional, same constraints as image)
+//   - images: list<string> (optional, max 5 items, each valid image source)
+//   - fileName: string (optional, 0..200 chars)
+//   - deleted: bool (optional, tombstone flag)
+//   - order: int (optional, 0..10000)
+//   - createdAt, updatedAt, createdBy, updatedBy (optional audit fields)
+//
+// Collection: cms_meta
+// Document ID: 'admins' (strictly enforced)
+// Fields:
+//   - emails: list<string> (required, max 20 lowercase valid email addresses <= 120 chars each)
+//   - createdAt, updatedAt, createdBy, updatedBy (optional audit fields)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function hasVerifiedEmail() {
+      return isAuthenticated() &&
+        ('email_verified' in request.auth.token) &&
+        request.auth.token.email_verified == true &&
+        ('email' in request.auth.token) &&
+        request.auth.token.email is string;
+    }
+
+    function isBootstrapOwner() {
+      return hasVerifiedEmail() &&
+        request.auth.token.email.lower() in ['manuelcarpita@gmail.com'];
+    }
+
+    function isFermiumAdmin() {
+      return hasVerifiedEmail() && (
+        isBootstrapOwner() ||
+        (
+          exists(/databases/$(database)/documents/cms_meta/admins) &&
+          ('emails' in get(/databases/$(database)/documents/cms_meta/admins).data) &&
+          get(/databases/$(database)/documents/cms_meta/admins).data.emails is list &&
+          request.auth.token.email.lower() in get(/databases/$(database)/documents/cms_meta/admins).data.emails
+        )
+      );
+    }
+
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string &&
+        val.size() >= minLen &&
+        val.size() <= maxLen;
+    }
+
+    function isValidOptionalString(data, field, minLen, maxLen) {
+      return !(field in data) || isValidString(data[field], minLen, maxLen);
+    }
+
+    function isValidOptionalInt(data, field, minVal, maxVal) {
+      return !(field in data) ||
+        (data[field] is int && data[field] >= minVal && data[field] <= maxVal);
+    }
+
+    function isValidOptionalNumber(data, field, minVal, maxVal) {
+      return !(field in data) ||
+        (data[field] is number && data[field] >= minVal && data[field] <= maxVal);
+    }
+
+    function isValidOptionalBool(data, field) {
+      return !(field in data) || data[field] is bool;
+    }
+
+    function isValidOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] is timestamp;
+    }
+
+    function isTombstone(data) {
+      return ('deleted' in data) && data.deleted is bool && data.deleted == true;
+    }
+
+    function isValidHttpUrl(url) {
+      return url is string &&
+        url.size() >= 8 &&
+        url.size() <= 2048 &&
+        (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function isSafeRelativePath(val) {
+      return val is string &&
+        val.size() > 0 &&
+        val.size() <= 512 &&
+        !val.matches(".*\\.\\..*") &&
+        !val.matches(".*:.*") &&
+        (
+          val.matches("^\\./[^\\r\\n]+$") ||
+          val.matches("^/[^/\\r\\n][^\\r\\n]*$") ||
+          val.matches("^schematics/[^\\r\\n]+$")
+        );
+    }
+
+    // Allows only raster image Data URLs (blocks SVG/HTML payloads to prevent stored XSS).
+    function isSafeImageDataUrl(val) {
+      return val is string &&
+        val.size() <= 950000 &&
+        (
+          (val.size() >= 24 && val[0:23] == 'data:image/webp;base64,') ||
+          (val.size() >= 24 && val[0:23] == 'data:image/jpeg;base64,') ||
+          (val.size() >= 23 && val[0:22] == 'data:image/png;base64,') ||
+          (val.size() >= 23 && val[0:22] == 'data:image/gif;base64,')
+        );
+    }
+
+    function isSafeImageSource(val) {
+      return isValidHttpUrl(val) || isSafeRelativePath(val) || isSafeImageDataUrl(val);
+    }
+
+    function isValidOptionalImageSource(data, field) {
+      return !(field in data) ||
+        (data[field] is string && (data[field].size() == 0 || isSafeImageSource(data[field])));
+    }
+
+    function isSafeSchematicDataUrl(val) {
+      return val is string &&
+        val.size() >= 38 &&
+        val.size() <= 950000 &&
+        val[0:37] == 'data:application/octet-stream;base64,';
+    }
+
+    function isSafeSchematicFileUrl(val) {
+      return isValidHttpUrl(val) || isSafeRelativePath(val) || isSafeSchematicDataUrl(val);
+    }
+
+    function isValidOptionalSchematicFileUrl(data, field) {
+      return !(field in data) ||
+        (data[field] is string && (data[field].size() == 0 || isSafeSchematicFileUrl(data[field])));
+    }
+
+    function isValidOptionalUuid(val) {
+      return val is string &&
+        (
+          val.size() == 0 ||
+          val.matches("^[0-9a-fA-F]{32}$") ||
+          val.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+        );
+    }
+
+    function isValidImageList(images) {
+      return images is list &&
+        images.size() <= 5 &&
+        (images.size() < 1 || isSafeImageSource(images[0])) &&
+        (images.size() < 2 || isSafeImageSource(images[1])) &&
+        (images.size() < 3 || isSafeImageSource(images[2])) &&
+        (images.size() < 4 || isSafeImageSource(images[3])) &&
+        (images.size() < 5 || isSafeImageSource(images[4]));
+    }
+
+    function isValidLowercaseEmail(email) {
+      return email is string &&
+        email.size() >= 5 &&
+        email.size() <= 120 &&
+        email.matches("^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$");
+    }
+
+    function isValidAdminEmailsList(emails) {
+      return emails is list &&
+        emails.size() <= 20 &&
+        (emails.size() < 1 || isValidLowercaseEmail(emails[0])) &&
+        (emails.size() < 2 || isValidLowercaseEmail(emails[1])) &&
+        (emails.size() < 3 || isValidLowercaseEmail(emails[2])) &&
+        (emails.size() < 4 || isValidLowercaseEmail(emails[3])) &&
+        (emails.size() < 5 || isValidLowercaseEmail(emails[4])) &&
+        (emails.size() < 6 || isValidLowercaseEmail(emails[5])) &&
+        (emails.size() < 7 || isValidLowercaseEmail(emails[6])) &&
+        (emails.size() < 8 || isValidLowercaseEmail(emails[7])) &&
+        (emails.size() < 9 || isValidLowercaseEmail(emails[8])) &&
+        (emails.size() < 10 || isValidLowercaseEmail(emails[9])) &&
+        (emails.size() < 11 || isValidLowercaseEmail(emails[10])) &&
+        (emails.size() < 12 || isValidLowercaseEmail(emails[11])) &&
+        (emails.size() < 13 || isValidLowercaseEmail(emails[12])) &&
+        (emails.size() < 14 || isValidLowercaseEmail(emails[13])) &&
+        (emails.size() < 15 || isValidLowercaseEmail(emails[14])) &&
+        (emails.size() < 16 || isValidLowercaseEmail(emails[15])) &&
+        (emails.size() < 17 || isValidLowercaseEmail(emails[16])) &&
+        (emails.size() < 18 || isValidLowercaseEmail(emails[17])) &&
+        (emails.size() < 19 || isValidLowercaseEmail(emails[18])) &&
+        (emails.size() < 20 || isValidLowercaseEmail(emails[19]));
+    }
+
+    function isValidActorIdentifier(val) {
+      return val is string &&
+        val.size() >= 1 &&
+        val.size() <= 120 &&
+        (val == request.auth.uid || val.lower() == request.auth.token.email.lower());
+    }
+
+    function areImmutableAuditFieldsUnchanged() {
+      return (!('createdAt' in resource.data) || (('createdAt' in request.resource.data) && request.resource.data.createdAt == resource.data.createdAt)) &&
+        (!('createdBy' in resource.data) || (('createdBy' in request.resource.data) && request.resource.data.createdBy == resource.data.createdBy));
+    }
+
+    function isValidAuditFieldsOnCreate(data) {
+      return isValidOptionalTimestamp(data, 'createdAt') &&
+        isValidOptionalTimestamp(data, 'updatedAt') &&
+        (!('createdBy' in data) || isValidActorIdentifier(data.createdBy)) &&
+        (!('updatedBy' in data) || isValidActorIdentifier(data.updatedBy));
+    }
+
+    function isValidAuditFieldsOnUpdate(data) {
+      return areImmutableAuditFieldsUnchanged() &&
+        isValidOptionalTimestamp(data, 'createdAt') &&
+        isValidOptionalTimestamp(data, 'updatedAt') &&
+        (!('createdBy' in data) || ('createdBy' in resource.data) || isValidActorIdentifier(data.createdBy)) &&
+        (!('updatedBy' in data) || isValidActorIdentifier(data.updatedBy));
+    }
+
+    // ===============================================================
+    // Domain Validators (Called in both create and update rules)
+    // ===============================================================
+
+    function isValidMember(data) {
+      let allowed = [
+        'id', 'name', 'roleGroup', 'uuid', 'customImageUrl',
+        'deleted', 'order', 'slotNumber',
+        'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ];
+      let optionalFieldsValid =
+        hasOnlyAllowedFields(data, allowed) &&
+        isValidOptionalBool(data, 'deleted') &&
+        isValidOptionalString(data, 'id', 1, 100) &&
+        isValidOptionalString(data, 'name', 1, 40) &&
+        (!('roleGroup' in data) || data.roleGroup in ['owner', 'member', 'trial']) &&
+        (!('uuid' in data) || isValidOptionalUuid(data.uuid)) &&
+        isValidOptionalImageSource(data, 'customImageUrl') &&
+        isValidOptionalInt(data, 'order', 0, 10000) &&
+        isValidOptionalInt(data, 'slotNumber', 0, 10000);
+
+      return optionalFieldsValid && (
+        isTombstone(data) ||
+        hasRequiredFields(data, ['name', 'roleGroup'])
+      );
+    }
+
+    function isValidProject(data) {
+      let allowed = [
+        'id', 'slotNumber', 'order', 'category', 'coverImage', 'imageUrl',
+        'titleIt', 'titleEn', 'descIt', 'descEn',
+        'deleted', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ];
+      let validCategories = [
+        'farms', 'redstone', 'infrastructure', 'perimeters', 'storage', 'megabuilds'
+      ];
+      let optionalFieldsValid =
+        hasOnlyAllowedFields(data, allowed) &&
+        isValidOptionalBool(data, 'deleted') &&
+        isValidOptionalString(data, 'id', 1, 100) &&
+        isValidOptionalInt(data, 'slotNumber', 0, 10000) &&
+        isValidOptionalInt(data, 'order', 0, 10000) &&
+        (!('category' in data) || data.category in validCategories) &&
+        isValidOptionalImageSource(data, 'coverImage') &&
+        isValidOptionalImageSource(data, 'imageUrl') &&
+        isValidOptionalString(data, 'titleIt', 1, 160) &&
+        isValidOptionalString(data, 'titleEn', 1, 160) &&
+        isValidOptionalString(data, 'descIt', 1, 2000) &&
+        isValidOptionalString(data, 'descEn', 1, 2000);
+
+      return optionalFieldsValid && (
+        isTombstone(data) ||
+        hasRequiredFields(data, ['titleIt', 'titleEn', 'descIt', 'descEn', 'category'])
+      );
+    }
+
+    function isValidGalleryItem(data) {
+      let allowed = [
+        'id', 'slotNumber', 'order', 'aspectClass', 'imageUrl',
+        'title', 'titleIt', 'titleEn', 'caption',
+        'deleted', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ];
+      let optionalFieldsValid =
+        hasOnlyAllowedFields(data, allowed) &&
+        isValidOptionalBool(data, 'deleted') &&
+        isValidOptionalString(data, 'id', 1, 100) &&
+        isValidOptionalInt(data, 'slotNumber', 0, 10000) &&
+        isValidOptionalInt(data, 'order', 0, 10000) &&
+        isValidOptionalString(data, 'aspectClass', 0, 100) &&
+        isValidOptionalImageSource(data, 'imageUrl') &&
+        isValidOptionalString(data, 'title', 0, 160) &&
+        isValidOptionalString(data, 'titleIt', 0, 160) &&
+        isValidOptionalString(data, 'titleEn', 0, 160) &&
+        isValidOptionalString(data, 'caption', 0, 500);
+
+      return optionalFieldsValid && (
+        isTombstone(data) ||
+        (
+          hasRequiredFields(data, ['imageUrl']) &&
+          isSafeImageSource(data.imageUrl)
+        )
+      );
+    }
+
+    function isValidVideo(data) {
+      let allowed = [
+        'id', 'url', 'videoUrl', 'platform', 'title', 'creatorName', 'dateLabel',
+        'slotNumber', 'order', 'deleted',
+        'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ];
+      let optionalFieldsValid =
+        hasOnlyAllowedFields(data, allowed) &&
+        isValidOptionalBool(data, 'deleted') &&
+        isValidOptionalString(data, 'id', 1, 100) &&
+        (!('url' in data) || (isValidHttpUrl(data.url) && data.url.size() <= 500)) &&
+        (!('videoUrl' in data) || (data.videoUrl is string && (data.videoUrl.size() == 0 || (isValidHttpUrl(data.videoUrl) && data.videoUrl.size() <= 500)))) &&
+        (!('platform' in data) || data.platform in ['youtube', 'tiktok']) &&
+        isValidOptionalString(data, 'title', 0, 200) &&
+        isValidOptionalString(data, 'creatorName', 0, 80) &&
+        isValidOptionalString(data, 'dateLabel', 0, 40) &&
+        isValidOptionalInt(data, 'slotNumber', 0, 10000) &&
+        isValidOptionalInt(data, 'order', 0, 10000);
+
+      return optionalFieldsValid && (
+        isTombstone(data) ||
+        hasRequiredFields(data, ['url'])
+      );
+    }
+
+    function isValidSchematic(data) {
+      let allowed = [
+        'id', 'name', 'author', 'origin', 'category', 'dimensions', 'blocks',
+        'size', 'format', 'description', 'image', 'imageUrl', 'images',
+        'fileName', 'fileUrl', 'url',
+        'deleted', 'order', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ];
+      let optionalFieldsValid =
+        hasOnlyAllowedFields(data, allowed) &&
+        isValidOptionalBool(data, 'deleted') &&
+        isValidOptionalString(data, 'id', 1, 100) &&
+        isValidOptionalString(data, 'name', 1, 160) &&
+        isValidOptionalString(data, 'author', 0, 100) &&
+        (!('origin' in data) || data.origin in ['fermium', 'external']) &&
+        isValidOptionalString(data, 'category', 0, 80) &&
+        isValidOptionalString(data, 'dimensions', 0, 80) &&
+        isValidOptionalNumber(data, 'blocks', 0, 2000000000) &&
+        isValidOptionalString(data, 'size', 0, 40) &&
+        isValidOptionalString(data, 'format', 0, 30) &&
+        isValidOptionalString(data, 'description', 0, 2000) &&
+        isValidOptionalImageSource(data, 'image') &&
+        isValidOptionalImageSource(data, 'imageUrl') &&
+        (!('images' in data) || isValidImageList(data.images)) &&
+        isValidOptionalString(data, 'fileName', 0, 200) &&
+        isValidOptionalSchematicFileUrl(data, 'fileUrl') &&
+        isValidOptionalSchematicFileUrl(data, 'url') &&
+        isValidOptionalInt(data, 'order', 0, 10000);
+
+      return optionalFieldsValid && (
+        isTombstone(data) ||
+        (
+          hasRequiredFields(data, ['name', 'fileUrl']) &&
+          isSafeSchematicFileUrl(data.fileUrl)
+        )
+      );
+    }
+
+    function isValidAdminsMeta(data) {
+      let allowed = ['emails', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'];
+      return hasOnlyAllowedFields(data, allowed) &&
+        hasRequiredFields(data, ['emails']) &&
+        isValidAdminEmailsList(data.emails);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /cms_members/{docId} {
+      allow read: if true;
+      allow create: if isFermiumAdmin() &&
+        isValidMember(request.resource.data) &&
+        isValidAuditFieldsOnCreate(request.resource.data);
+      allow update: if isFermiumAdmin() &&
+        isValidMember(request.resource.data) &&
+        isValidAuditFieldsOnUpdate(request.resource.data);
+      allow delete: if isFermiumAdmin();
+    }
+
+    match /cms_projects/{docId} {
+      allow read: if true;
+      allow create: if isFermiumAdmin() &&
+        isValidProject(request.resource.data) &&
+        isValidAuditFieldsOnCreate(request.resource.data);
+      allow update: if isFermiumAdmin() &&
+        isValidProject(request.resource.data) &&
+        isValidAuditFieldsOnUpdate(request.resource.data);
+      allow delete: if isFermiumAdmin();
+    }
+
+    match /cms_gallery/{docId} {
+      allow read: if true;
+      allow create: if isFermiumAdmin() &&
+        isValidGalleryItem(request.resource.data) &&
+        isValidAuditFieldsOnCreate(request.resource.data);
+      allow update: if isFermiumAdmin() &&
+        isValidGalleryItem(request.resource.data) &&
+        isValidAuditFieldsOnUpdate(request.resource.data);
+      allow delete: if isFermiumAdmin();
+    }
+
+    match /cms_videos/{docId} {
+      allow read: if true;
+      allow create: if isFermiumAdmin() &&
+        isValidVideo(request.resource.data) &&
+        isValidAuditFieldsOnCreate(request.resource.data);
+      allow update: if isFermiumAdmin() &&
+        isValidVideo(request.resource.data) &&
+        isValidAuditFieldsOnUpdate(request.resource.data);
+      allow delete: if isFermiumAdmin();
+    }
+
+    match /cms_schematics/{docId} {
+      allow read: if true;
+      allow create: if isFermiumAdmin() &&
+        isValidSchematic(request.resource.data) &&
+        isValidAuditFieldsOnCreate(request.resource.data);
+      allow update: if isFermiumAdmin() &&
+        isValidSchematic(request.resource.data) &&
+        isValidAuditFieldsOnUpdate(request.resource.data);
+      allow delete: if isFermiumAdmin();
+    }
+
+    match /cms_meta/admins {
+      // Restricted to verified Fermium admins so arbitrary signed-in users cannot harvest admin emails (PII).
+      allow read: if isFermiumAdmin();
+      allow create: if isBootstrapOwner() &&
+        isValidAdminsMeta(request.resource.data) &&
+        isValidAuditFieldsOnCreate(request.resource.data);
+      allow update: if isBootstrapOwner() &&
+        isValidAdminsMeta(request.resource.data) &&
+        isValidAuditFieldsOnUpdate(request.resource.data);
+      allow delete: if isBootstrapOwner();
+    }
+
+    // Default deny for all other paths and subcollections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

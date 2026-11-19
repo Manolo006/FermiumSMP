@@ -193,17 +193,8 @@ async function gunzipIfNeeded(rawBuffer: ArrayBuffer): Promise<ArrayBuffer> {
 
 const schematicCache = new Map<string, Promise<ParsedLitematic>>();
 
-export function parseLitematicFromUrl(url: string): Promise<ParsedLitematic> {
-  const existing = schematicCache.get(url);
-  if (existing) return existing;
-
-  const task = (async () => {
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch schematic: ${res.status}`);
-    }
-    const rawBuffer = await res.arrayBuffer();
-    const nbtBuffer = await gunzipIfNeeded(rawBuffer);
+export async function parseLitematicFromBuffer(rawBuffer: ArrayBuffer): Promise<ParsedLitematic> {
+  const nbtBuffer = await gunzipIfNeeded(rawBuffer);
     const root = parseLitematicNbt(nbtBuffer);
     const regions = Object.values(root.Regions || {});
 
@@ -339,17 +330,30 @@ export function parseLitematicFromUrl(url: string): Promise<ParsedLitematic> {
       styles[i] = rawStyle[i];
     }
 
-    return {
-      sizeX: maxX - minX + 1,
-      sizeY: maxY - minY + 1,
-      sizeZ: maxZ - minZ + 1,
-      totalBlocks: total,
-      paletteStyles,
-      xs,
-      ys,
-      zs,
-      styles,
-    };
+  return {
+    sizeX: maxX - minX + 1,
+    sizeY: maxY - minY + 1,
+    sizeZ: maxZ - minZ + 1,
+    totalBlocks: total,
+    paletteStyles,
+    xs,
+    ys,
+    zs,
+    styles,
+  };
+}
+
+export function parseLitematicFromUrl(url: string): Promise<ParsedLitematic> {
+  const existing = schematicCache.get(url);
+  if (existing) return existing;
+
+  const task = (async () => {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch schematic: ${res.status}`);
+    }
+    const rawBuffer = await res.arrayBuffer();
+    return await parseLitematicFromBuffer(rawBuffer);
   })().catch((err) => {
     schematicCache.delete(url);
     throw err;
