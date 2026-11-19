@@ -13,7 +13,6 @@ import {
   Plus,
   Settings,
   ShieldCheck,
-  Trash2,
   Users,
   Video,
 } from 'lucide-react';
@@ -21,12 +20,8 @@ import { useLanguage } from '../i18n/LanguageContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useSiteContent } from '../context/SiteContentContext';
 import {
-  clearRuntimeFirebaseConfig,
   getAllowedAdminEmails,
-  getRuntimeFirebaseConfig,
-  parseFirebaseConfigInput,
   saveRuntimeAdminEmails,
-  saveRuntimeFirebaseConfig,
 } from '../config/firebase';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -46,14 +41,12 @@ export const StaffPage: React.FC = () => {
   const {
     isAdmin,
     firebaseVerified,
-    firebaseConfigured,
     adminUser,
     authLoading,
     authError,
     signInWithGoogle,
     signOutAdmin,
     clearAuthError,
-    refreshFirebaseBinding,
     syncAllowedEmailsToFirestore,
   } = useAdminAuth();
 
@@ -74,12 +67,6 @@ export const StaffPage: React.FC = () => {
   const [emailsInput, setEmailsInput] = useState(() =>
     getAllowedAdminEmails().join(', ')
   );
-  const [configSnippet, setConfigSnippet] = useState('');
-  const [extraEmailInput, setExtraEmailInput] = useState('');
-  const [showQuickConnect, setShowQuickConnect] = useState<boolean>(
-    () => !firebaseConfigured
-  );
-  const [showAdminFirebaseConfig, setShowAdminFirebaseConfig] = useState<boolean>(false);
   const [configFeedback, setConfigFeedback] = useState<{
     type: 'ok' | 'err';
     text: string;
@@ -89,83 +76,6 @@ export const StaffPage: React.FC = () => {
   const [openModal, setOpenModal] = useState<
     null | 'member' | 'project' | 'gallery' | 'video' | 'schematic'
   >(null);
-
-  const hasRuntimeOverride = Boolean(getRuntimeFirebaseConfig());
-
-  const handleQuickSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setConfigFeedback(null);
-    const snippetTrimmed = configSnippet.trim();
-    const extraTrimmed = extraEmailInput.trim();
-
-    if (!snippetTrimmed && !extraTrimmed) {
-      setConfigFeedback({
-        type: 'err',
-        text: isIt
-          ? 'Incolla il blocco firebaseConfig o inserisci un’email Google da autorizzare.'
-          : 'Paste your firebaseConfig snippet or enter a Google email.',
-      });
-      return;
-    }
-
-    try {
-      const actions: string[] = [];
-
-      if (snippetTrimmed) {
-        const parsed = parseFirebaseConfigInput(snippetTrimmed);
-        saveRuntimeFirebaseConfig(parsed);
-        refreshFirebaseBinding();
-        clearAuthError();
-        setConfigSnippet('');
-        setShowQuickConnect(false);
-        actions.push(
-          isIt
-            ? `Firebase collegato (${parsed.projectId})`
-            : `Firebase connected (${parsed.projectId})`
-        );
-      }
-
-      if (extraTrimmed) {
-        const parts = extraTrimmed
-          .split(/[,\n;]+/)
-          .map((s) => s.trim().toLowerCase())
-          .filter((s) => s.includes('@'));
-        if (parts.length === 0) {
-          throw new Error(
-            isIt ? 'Inserisci un indirizzo email valido.' : 'Enter a valid email address.'
-          );
-        }
-        saveRuntimeAdminEmails([...getAllowedAdminEmails(), ...parts]);
-        setEmailsInput(getAllowedAdminEmails().join(', '));
-        setExtraEmailInput('');
-        actions.push(
-          isIt
-            ? `Email autorizzata su questo browser (${parts.join(', ')})`
-            : `Email authorized locally (${parts.join(', ')})`
-        );
-      }
-
-      setConfigFeedback({
-        type: 'ok',
-        text: actions.join(' · '),
-      });
-    } catch (err) {
-      setConfigFeedback({
-        type: 'err',
-        text: err instanceof Error ? err.message : String(err),
-      });
-    }
-  };
-
-  const handleClearFirebaseConfig = () => {
-    clearRuntimeFirebaseConfig();
-    refreshFirebaseBinding();
-    setShowQuickConnect(true);
-    setConfigFeedback({
-      type: 'ok',
-      text: isIt ? 'Configurazione Firebase rimossa.' : 'Saved Firebase config cleared.',
-    });
-  };
 
   const handleSaveEmails = async () => {
     setConfigFeedback(null);
@@ -267,67 +177,6 @@ export const StaffPage: React.FC = () => {
       onJump: () => navigate('/tools/archive'),
     },
   ];
-
-  const renderQuickConnectForm = (includeExtraEmail: boolean) => (
-    <form onSubmit={handleQuickSave} className="space-y-3 text-left">
-      <div>
-        <label
-          htmlFor="cms-firebase-snippet"
-          className="block text-[11px] font-mono uppercase tracking-wider text-text-secondary mb-1.5"
-        >
-          {isIt ? 'Incolla firebaseConfig' : 'Paste firebaseConfig'}
-        </label>
-        <textarea
-          id="cms-firebase-snippet"
-          rows={4}
-          value={configSnippet}
-          onChange={(e) => setConfigSnippet(e.target.value)}
-          placeholder={`{\n  "apiKey": "AIza...",\n  "authDomain": "tuo-progetto.firebaseapp.com",\n  "projectId": "tuo-progetto",\n  "appId": "1:123456:web:abcdef"\n}`}
-          className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F14] border border-white/10 focus:border-accent-cyan/70 focus:outline-none text-xs font-mono text-text-primary"
-        />
-      </div>
-
-      {includeExtraEmail && (
-        <div>
-          <label
-            htmlFor="cms-quick-extra-email"
-            className="block text-[11px] font-mono uppercase tracking-wider text-text-secondary mb-1.5"
-          >
-            {isIt ? 'Aggiungi email Google (opzionale)' : 'Add Google email (optional)'}
-          </label>
-          <input
-            id="cms-quick-extra-email"
-            type="text"
-            value={extraEmailInput}
-            onChange={(e) => setExtraEmailInput(e.target.value)}
-            placeholder="altra.mail@gmail.com"
-            className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F14] border border-white/10 focus:border-accent-cyan/70 focus:outline-none text-base sm:text-sm font-mono text-text-primary"
-          />
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-        {hasRuntimeOverride && (
-          <button
-            type="button"
-            onClick={handleClearFirebaseConfig}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-xs font-mono text-red-300 cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>{isIt ? 'Rimuovi' : 'Clear'}</span>
-          </button>
-        )}
-
-        <button
-          type="submit"
-          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-cyan hover:bg-accent-cyan-hover text-[#061018] text-xs font-heading font-semibold cursor-pointer shadow-glow-cyan"
-        >
-          <Check className="w-3.5 h-3.5" />
-          <span>{isIt ? 'Salva & Collega' : 'Save & Connect'}</span>
-        </button>
-      </div>
-    </form>
-  );
 
   return (
     <div className="min-h-screen pt-32 pb-24 bg-bg-main">
@@ -531,97 +380,40 @@ export const StaffPage: React.FC = () => {
                 </button>
               </div>
             </div>
-
-            {/* Configurazione Firebase opzionale per Owner autenticato */}
-            <div className="glass-panel rounded-2xl p-5">
-              <button
-                type="button"
-                onClick={() => setShowAdminFirebaseConfig((s) => !s)}
-                className="w-full flex items-center justify-between text-xs font-mono text-text-secondary hover:text-text-primary cursor-pointer"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <Settings className="w-4 h-4 text-accent-cyan" />
-                  <span>{isIt ? 'Configurazione Firebase' : 'Firebase Configuration'}</span>
-                </span>
-                <span className="text-accent-cyan">
-                  {showAdminFirebaseConfig ? (isIt ? 'Chiudi' : 'Close') : isIt ? 'Modifica' : 'Edit'}
-                </span>
-              </button>
-              {showAdminFirebaseConfig && (
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  {renderQuickConnectForm(false)}
-                </div>
-              )}
-            </div>
           </div>
         ) : (
           /* ================================================================= */
-          /* LOGGED OUT: PULSANTE ACCEDI CON GOOGLE + COLLEGAMENTO RAPIDO      */
+          /* LOGGED OUT: SOLO PULSANTE ACCEDI CON GOOGLE                      */
           /* ================================================================= */
-          <div className="max-w-md mx-auto my-8 space-y-4">
-            <div className="glass-panel border-gradient-cyan rounded-3xl p-8 sm:p-12 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-accent-cyan/15 border border-accent-cyan/35 flex items-center justify-center text-accent-cyan mb-6 mx-auto shadow-glow-cyan">
-                <ShieldCheck className="w-8 h-8" />
-              </div>
-
-              <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text-primary mb-3">
-                {isIt ? 'Accesso Staff Fermium' : 'Fermium Staff Sign-In'}
-              </h2>
-              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed mb-8">
-                {isIt
-                  ? 'Accedi con il tuo account Google autorizzato per sbloccare la gestione del sito.'
-                  : 'Sign in with your authorized Google account to manage the site.'}
-              </p>
-
-              <button
-                type="button"
-                onClick={() => signInWithGoogle()}
-                disabled={authLoading}
-                className="w-full inline-flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-accent-cyan hover:bg-accent-cyan-hover text-[#061018] font-heading font-bold text-sm sm:text-base transition-all cursor-pointer disabled:opacity-50 shadow-glow-cyan active:scale-[0.97]"
-              >
-                {authLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <KeyRound className="w-5 h-5" />
-                )}
-                <span>
-                  {isIt ? 'Accedi con Google' : 'Sign in with Google'}
-                </span>
-              </button>
+          <div className="glass-panel border-gradient-cyan rounded-3xl p-8 sm:p-12 max-w-md mx-auto text-center my-8">
+            <div className="w-16 h-16 rounded-2xl bg-accent-cyan/15 border border-accent-cyan/35 flex items-center justify-center text-accent-cyan mb-6 mx-auto shadow-glow-cyan">
+              <ShieldCheck className="w-8 h-8" />
             </div>
 
-            <div className="glass-panel rounded-2xl px-4 py-3">
-              <button
-                type="button"
-                onClick={() => setShowQuickConnect((s) => !s)}
-                aria-expanded={showQuickConnect}
-                className="w-full flex items-center justify-between text-xs font-mono text-text-muted hover:text-text-primary cursor-pointer"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <Settings className="w-3.5 h-3.5 text-accent-cyan" />
-                  <span>{isIt ? 'Collega Firebase' : 'Connect Firebase'}</span>
-                </span>
-                <span className="text-accent-cyan">
-                  {showQuickConnect
-                    ? isIt
-                      ? 'Nascondi'
-                      : 'Hide'
-                    : firebaseConfigured
-                      ? isIt
-                        ? 'Configurato'
-                        : 'Connected'
-                      : isIt
-                        ? 'Apri'
-                        : 'Open'}
-                </span>
-              </button>
+            <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text-primary mb-3">
+              {isIt ? 'Accesso Staff Fermium' : 'Fermium Staff Sign-In'}
+            </h2>
+            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed mb-8">
+              {isIt
+                ? 'Accedi con il tuo account Google autorizzato per sbloccare la gestione del sito.'
+                : 'Sign in with your authorized Google account to manage the site.'}
+            </p>
 
-              {showQuickConnect && (
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  {renderQuickConnectForm(true)}
-                </div>
+            <button
+              type="button"
+              onClick={() => signInWithGoogle()}
+              disabled={authLoading}
+              className="w-full inline-flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-accent-cyan hover:bg-accent-cyan-hover text-[#061018] font-heading font-bold text-sm sm:text-base transition-all cursor-pointer disabled:opacity-50 shadow-glow-cyan active:scale-[0.97]"
+            >
+              {authLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <KeyRound className="w-5 h-5" />
               )}
-            </div>
+              <span>
+                {isIt ? 'Accedi con Google' : 'Sign in with Google'}
+              </span>
+            </button>
           </div>
         )}
       </div>

@@ -234,8 +234,8 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!services) {
       setAuthError(
         isIt
-          ? 'Firebase non è ancora collegato. Apri "Collega Firebase" qui sotto e incolla il blocco firebaseConfig.'
-          : 'Firebase is not connected yet. Open "Connect Firebase" below and paste your firebaseConfig.'
+          ? 'Firebase non è ancora configurato nel sito.'
+          : 'Firebase is not configured in the site yet.'
       );
       return;
     }
