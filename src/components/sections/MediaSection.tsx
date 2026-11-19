@@ -345,11 +345,11 @@ export const MediaSection: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 text-left">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2.5 mb-3">
-              <Badge variant="orange">{t.media.tag}</Badge>
+              <Badge variant="cyan">{t.media.tag}</Badge>
 
               {checking ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono bg-white/[0.04] border border-white/10 text-text-secondary">
-                  <span className="w-2 h-2 rounded-full bg-accent-orange animate-ping" />
+                  <span className="w-2 h-2 rounded-full bg-accent-cyan animate-ping" />
                   <span>{t.media.checkingBadge}</span>
                 </span>
               ) : liveCreators.length > 0 ? (
@@ -369,7 +369,7 @@ export const MediaSection: React.FC = () => {
 
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold tracking-tight text-text-primary">
               {t.media.title}{' '}
-              <span className="text-accent-orange">{t.media.titleAccent}</span>
+              <span className="text-accent-cyan">{t.media.titleAccent}</span>
             </h2>
             <p className="mt-3 text-sm sm:text-base text-text-secondary leading-relaxed">
               {t.media.subtitle}
@@ -381,14 +381,14 @@ export const MediaSection: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-20">
           {/* Left: 16:9 Stream Player Frame */}
           <div className="lg:col-span-7 flex flex-col">
-            <div className="glass-panel rounded-2xl p-2.5 flex-1 flex flex-col justify-between">
-              <div className="aspect-[16/9] w-full rounded-xl overflow-hidden border border-white/[0.06] bg-[#0D0F13] relative">
+            <div className="glass-panel border-gradient-cyan rounded-2xl p-2.5 flex-1 flex flex-col justify-between">
+              <div className="aspect-[16/9] w-full rounded-xl overflow-hidden img-outline-dark bg-[#0A0E14] relative">
                 {activeCreator ? (
                   renderStreamIframe(activeCreator)
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-6 sm:p-10 text-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(240,138,54,0.08),transparent_65%)] pointer-events-none" />
-                    <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-accent-orange mb-4">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.09),transparent_65%)] pointer-events-none" />
+                    <div className="w-14 h-14 rounded-2xl bg-accent-cyan/10 border border-accent-cyan/25 flex items-center justify-center text-accent-cyan mb-4">
                       <Radio className="w-6 h-6" />
                     </div>
                     <h3 className="text-lg sm:text-xl font-heading font-semibold text-text-primary mb-2">
@@ -497,7 +497,7 @@ export const MediaSection: React.FC = () => {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/[0.06] text-text-primary border border-white/15 hover:bg-white/[0.12] transition-colors"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-accent-orange" />
+                        <Sparkles className="w-3.5 h-3.5 text-accent-cyan" />
                         <span>TikTok</span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
@@ -519,7 +519,7 @@ export const MediaSection: React.FC = () => {
                     </h3>
                     <p className="text-xs text-text-muted">{t.media.rosterSub}</p>
                   </div>
-                  <Tv className="w-4 h-4 text-accent-orange" />
+                  <Tv className="w-4 h-4 text-accent-cyan" />
                 </div>
 
                 <div className="space-y-2">
@@ -531,11 +531,19 @@ export const MediaSection: React.FC = () => {
                     return (
                       <div
                         key={creator.memberId}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => handleSelectCreator(creator)}
-                        className={`w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl border transition-all cursor-pointer ${
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleSelectCreator(creator);
+                          }
+                        }}
+                        className={`w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl border transition-[background-color,border-color,box-shadow] duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/80 ${
                           isSelected
-                            ? 'bg-white/[0.08] border-accent-orange/50 shadow-glow-orange'
-                            : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.05] hover:border-white/15'
+                            ? 'bg-accent-cyan/[0.07] border-accent-cyan/50 shadow-glow-cyan'
+                            : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/15'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -659,7 +667,7 @@ export const MediaSection: React.FC = () => {
         <div>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 text-left">
             <div>
-              <span className="text-xs font-mono uppercase tracking-wider text-accent-orange block mb-1.5">
+              <span className="text-xs font-mono uppercase tracking-wider text-accent-cyan block mb-1.5">
                 {t.media.videosTag}
               </span>
               <h3 className="text-2xl sm:text-3xl font-heading font-bold text-text-primary tracking-tight">
@@ -679,10 +687,10 @@ export const MediaSection: React.FC = () => {
                 return (
                   <div
                     key={video.id}
-                    className="group glass-panel rounded-2xl p-3 flex flex-col justify-between text-left transition-all duration-200 ease-out-Quart hover:-translate-y-1 hover:border-white/20"
+                    className="group glass-panel hover-lift rounded-2xl p-3 flex flex-col justify-between text-left hover:border-accent-cyan/30"
                   >
                     <div>
-                      <div className="aspect-[16/9] w-full rounded-xl overflow-hidden border border-white/[0.06] mb-3.5 relative bg-[#0D0F13]">
+                      <div className="aspect-[16/9] w-full rounded-xl overflow-hidden img-outline-dark mb-3.5 relative bg-[#0A0E14]">
                         {video.youtubeId ? (
                           isPlaying ? (
                             <iframe
@@ -695,8 +703,9 @@ export const MediaSection: React.FC = () => {
                           ) : (
                             <button
                               type="button"
+                              aria-label={`${t.media.watchVideo}: ${video.title}`}
                               onClick={() => setPlayingVideoId(video.id)}
-                              className="w-full h-full relative block cursor-pointer group/play"
+                              className="w-full h-full relative block cursor-pointer group/play focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/80"
                             >
                               <img
                                 src={video.thumbnailUrl}
@@ -705,7 +714,7 @@ export const MediaSection: React.FC = () => {
                                 loading="lazy"
                               />
                               <div className="absolute inset-0 bg-black/35 group-hover/play:bg-black/20 transition-colors flex items-center justify-center">
-                                <div className="w-12 h-12 rounded-2xl bg-accent-orange text-[#101216] flex items-center justify-center shadow-glow-orange transition-transform duration-200 group-hover/play:scale-110">
+                                <div className="w-12 h-12 rounded-2xl bg-accent-cyan text-[#061018] flex items-center justify-center shadow-glow-cyan transition-transform duration-200 group-hover/play:scale-110">
                                   <Play className="w-5 h-5 fill-current ml-0.5" />
                                 </div>
                               </div>
@@ -722,8 +731,9 @@ export const MediaSection: React.FC = () => {
                           ) : (
                             <button
                               type="button"
+                              aria-label={`${t.media.watchVideo}: ${video.title}`}
                               onClick={() => setPlayingVideoId(video.id)}
-                              className="w-full h-full relative block cursor-pointer group/play"
+                              className="w-full h-full relative block cursor-pointer group/play focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/80"
                             >
                               {video.thumbnailUrl ? (
                                 <img
@@ -733,10 +743,10 @@ export const MediaSection: React.FC = () => {
                                   loading="lazy"
                                 />
                               ) : (
-                                <div className="w-full h-full bg-[#12151B]" />
+                                <div className="w-full h-full bg-[#0E131B]" />
                               )}
                               <div className="absolute inset-0 bg-black/35 group-hover/play:bg-black/20 transition-colors flex items-center justify-center">
-                                <div className="w-12 h-12 rounded-2xl bg-accent-orange text-[#101216] flex items-center justify-center shadow-glow-orange transition-transform duration-200 group-hover/play:scale-110">
+                                <div className="w-12 h-12 rounded-2xl bg-accent-cyan text-[#061018] flex items-center justify-center shadow-glow-cyan transition-transform duration-200 group-hover/play:scale-110">
                                   <Play className="w-5 h-5 fill-current ml-0.5" />
                                 </div>
                               </div>
@@ -746,7 +756,7 @@ export const MediaSection: React.FC = () => {
                       </div>
 
                       <div className="px-1.5">
-                        <span className="text-[11px] font-mono uppercase tracking-wider text-accent-orange block mb-1">
+                        <span className="text-[11px] font-mono uppercase tracking-wider text-accent-cyan block mb-1">
                           {video.authorName}
                         </span>
                         <h4 className="text-base font-heading font-semibold text-text-primary line-clamp-2">
@@ -757,14 +767,14 @@ export const MediaSection: React.FC = () => {
 
                     <div className="px-1.5 pt-3 mt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
                       <span className="inline-flex items-center gap-1.5 text-text-muted font-mono uppercase">
-                        <Video className="w-3.5 h-3.5 text-accent-orange" />
+                        <Video className="w-3.5 h-3.5 text-accent-cyan" />
                         <span>{video.platform}</span>
                       </span>
                       <a
                         href={video.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-medium text-accent-orange hover:underline"
+                        className="inline-flex items-center gap-1 font-medium text-accent-cyan hover:underline"
                       >
                         <span>
                           {t.media.openOnPlatform}{' '}

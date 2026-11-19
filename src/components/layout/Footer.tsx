@@ -97,7 +97,7 @@ export const Footer: React.FC = () => {
                   href={DISCORD_INVITE_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-accent-orange hover:underline transition-colors"
+                  className="text-accent-cyan hover:underline transition-colors"
                 >
                   {t.nav.discord}
                 </a>

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Badge } from '../components/ui/Badge';
+import { ToolsSubNav } from '../components/navigation/ToolsSubNav';
 import { BLUEMAP_SITE_URL } from '../config/links';
 
 type ViewMode = 'perspective' | 'flat' | 'free';
@@ -148,8 +149,8 @@ export const WorldMapPage: React.FC = () => {
             id,
             labelIt: id,
             labelEn: id,
-            accentDot: 'bg-accent-orange',
-            activePill: 'bg-accent-orange/15 border-accent-orange/45 text-accent-orange',
+            accentDot: 'bg-accent-cyan',
+            activePill: 'bg-accent-cyan/15 border-accent-cyan/45 text-accent-cyan',
             startPos: [0, 0] as [number, number],
             hasSettings: false,
             hasTiles: false,
@@ -267,16 +268,19 @@ export const WorldMapPage: React.FC = () => {
   };
 
   return (
-    <div className="pt-28 pb-20 max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
+    <div className="pt-32 pb-20 max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
+      <ToolsSubNav />
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="space-y-2.5">
-          <Badge variant="orange">
+        <div className="space-y-2.5 text-left">
+          <Badge variant="cyan">
             <Compass className="w-3.5 h-3.5" />
             <span>BlueMap 3D · WebGL</span>
           </Badge>
-          <h1 className="font-heading text-3xl sm:text-4xl font-bold text-text-primary tracking-tight">
-            {isIt ? 'Mappa del Mondo' : 'World Map'}
+          <h1 className="font-heading text-3xl sm:text-5xl font-bold text-text-primary tracking-tight">
+            {isIt ? 'Mappa del ' : 'World '}
+            <span className="text-accent-cyan">{isIt ? 'Mondo' : 'Map'}</span>
           </h1>
           <p className="text-sm sm:text-base text-text-secondary max-w-2xl leading-relaxed">
             {isIt
@@ -292,7 +296,7 @@ export const WorldMapPage: React.FC = () => {
           className="inline-flex items-center gap-2 self-start md:self-auto px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
         >
           <span>{isIt ? 'Apri BlueMap a schermo intero' : 'Open standalone BlueMap'}</span>
-          <ExternalLink className="w-3.5 h-3.5 text-accent-orange" />
+          <ExternalLink className="w-3.5 h-3.5 text-accent-cyan" />
         </a>
       </div>
 
@@ -352,7 +356,7 @@ export const WorldMapPage: React.FC = () => {
                     onClick={() => handleSelectViewMode(mode.id)}
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono transition-colors cursor-pointer ${
                       active
-                        ? 'bg-accent-orange text-[#101216] font-semibold'
+                        ? 'bg-accent-cyan text-[#061018] font-semibold'
                         : 'text-text-secondary hover:text-text-primary'
                     }`}
                   >
@@ -369,7 +373,7 @@ export const WorldMapPage: React.FC = () => {
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
               title={isIt ? 'Centra allo Spawn' : 'Center on Spawn'}
             >
-              <Compass className="w-3.5 h-3.5 text-accent-orange" />
+              <Compass className="w-3.5 h-3.5 text-accent-cyan" />
               <span>Spawn</span>
             </button>
 
@@ -392,7 +396,7 @@ export const WorldMapPage: React.FC = () => {
         >
           {!iframeLoaded && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#0D1015]/95 pointer-events-none">
-              <Loader2 className="w-7 h-7 text-accent-orange animate-spin" />
+              <Loader2 className="w-7 h-7 text-accent-cyan animate-spin" />
               <div className="text-xs font-mono text-text-secondary">
                 {isIt ? 'Inizializzazione motore 3D BlueMap...' : 'Initializing BlueMap 3D engine...'}
               </div>
@@ -401,8 +405,8 @@ export const WorldMapPage: React.FC = () => {
 
           {externalSiteUnavailable && (
             <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-[#0D1015]/95">
-              <div className="max-w-lg w-full rounded-2xl bg-[#141821] border border-accent-orange/35 p-6 space-y-3 text-center shadow-2xl">
-                <Info className="w-7 h-7 text-accent-orange mx-auto" />
+              <div className="max-w-lg w-full rounded-2xl bg-[#141821] border border-accent-cyan/35 p-6 space-y-3 text-center shadow-2xl">
+                <Info className="w-7 h-7 text-accent-cyan mx-auto" />
                 <h2 className="font-heading text-lg font-bold text-text-primary">
                   {isIt ? 'Sito Mappa Separato non ancora online' : 'Separate Map Site Not Live Yet'}
                 </h2>
@@ -410,13 +414,13 @@ export const WorldMapPage: React.FC = () => {
                   {isIt ? (
                     <>
                       Il sito è collegato a{' '}
-                      <code className="text-accent-orange break-all">{BLUEMAP_SITE_URL}</code>. Carica su
+                      <code className="text-accent-cyan break-all">{BLUEMAP_SITE_URL}</code>. Carica su
                       quel repository i file preparati nella cartella Desktop <code className="text-text-primary">FermiumSMP-Map</code> e attiva GitHub Pages sul branch <code className="text-text-primary">main</code>.
                     </>
                   ) : (
                     <>
                       This page points to{' '}
-                      <code className="text-accent-orange break-all">{BLUEMAP_SITE_URL}</code>. Push the prepared <code className="text-text-primary">FermiumSMP-Map</code> folder and enable GitHub Pages on branch <code className="text-text-primary">main</code>.
+                      <code className="text-accent-cyan break-all">{BLUEMAP_SITE_URL}</code>. Push the prepared <code className="text-text-primary">FermiumSMP-Map</code> folder and enable GitHub Pages on branch <code className="text-text-primary">main</code>.
                     </>
                   )}
                 </p>
@@ -428,23 +432,23 @@ export const WorldMapPage: React.FC = () => {
             activeDimension.hasSettings &&
             !activeDimension.hasTiles &&
             dismissedEmptyAlert !== activeDimension.id && (
-              <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-xl rounded-2xl bg-[#141821]/95 border border-accent-orange/35 px-4 py-3 shadow-2xl backdrop-blur-md flex items-start gap-3">
-                <Info className="w-4 h-4 text-accent-orange shrink-0 mt-0.5" />
+              <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-xl rounded-2xl bg-[#141821]/95 border border-accent-cyan/35 px-4 py-3 shadow-2xl backdrop-blur-md flex items-start gap-3">
+                <Info className="w-4 h-4 text-accent-cyan shrink-0 mt-0.5" />
                 <div className="text-xs text-text-secondary leading-relaxed flex-1">
                   {isIt ? (
                     <>
                       La dimensione{' '}
                       <strong className="text-text-primary font-mono">{activeDimension.id}</strong> è
-                      configurata, ma al momento la cartella <code className="text-accent-orange">maps/{activeDimension.id}</code>{' '}
-                      non contiene ancora file in <code className="text-accent-orange">tiles/</code>. Quando
+                      configurata, ma al momento la cartella <code className="text-accent-cyan">maps/{activeDimension.id}</code>{' '}
+                      non contiene ancora file in <code className="text-accent-cyan">tiles/</code>. Quando
                       caricherai le tile renderizzate da BlueMap, appariranno qui automaticamente.
                     </>
                   ) : (
                     <>
                       Dimension{' '}
                       <strong className="text-text-primary font-mono">{activeDimension.id}</strong> is
-                      configured, but <code className="text-accent-orange">maps/{activeDimension.id}</code>{' '}
-                      does not contain rendered <code className="text-accent-orange">tiles/</code> yet. Once
+                      configured, but <code className="text-accent-cyan">maps/{activeDimension.id}</code>{' '}
+                      does not contain rendered <code className="text-accent-cyan">tiles/</code> yet. Once
                       you upload rendered BlueMap tiles, they will show up automatically.
                     </>
                   )}

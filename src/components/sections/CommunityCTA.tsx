@@ -14,22 +14,22 @@ export const CommunityCTA: React.FC = () => {
       className="relative py-24 sm:py-32 bg-bg-main border-t border-white/[0.06] overflow-hidden"
     >
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="glass-panel rounded-3xl p-8 sm:p-14 text-center relative overflow-hidden">
-          {/* Subtle Top Radial Glow */}
-          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-64 bg-accent-orange/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="glass-panel border-gradient-cyan rounded-3xl p-8 sm:p-14 text-center relative overflow-hidden">
+          {/* Subtle Top Radial Cyan Glow */}
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-64 bg-accent-cyan/15 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col items-center">
             <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/10 p-3 flex items-center justify-center mb-6">
               <img
                 src={fermiumLogo}
-                alt="Fermium Logo"
+                alt="Fermium SMP Logo"
                 className="w-full h-full object-contain"
               />
             </div>
 
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold tracking-tight text-text-primary leading-tight mb-4 max-w-2xl">
               {t.cta.title}{' '}
-              <span className="text-accent-orange">{t.cta.titleAccent}</span>
+              <span className="text-accent-cyan">{t.cta.titleAccent}</span>
             </h2>
 
             <p className="max-w-xl text-sm sm:text-base text-text-secondary leading-relaxed mb-8">
@@ -52,7 +52,7 @@ export const CommunityCTA: React.FC = () => {
               href={DISCORD_INVITE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 text-xs text-text-muted hover:text-accent-orange font-mono transition-colors"
+              className="mt-4 text-xs text-text-muted hover:text-accent-cyan font-mono transition-colors"
             >
               {DISCORD_INVITE_SHORT}
             </a>

@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   ArrowDown,
   ArrowLeft,
-  ArrowLeftRight,
   ArrowRight,
   ArrowUp,
   Check,
@@ -21,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Badge } from '../components/ui/Badge';
+import { ToolsSubNav } from '../components/navigation/ToolsSubNav';
 import {
   chunkKey,
   solveChunkLoaders,
@@ -263,39 +262,24 @@ export const ChunkLoaderPage: React.FC = () => {
     .join('\n');
 
   return (
-    <div className="pt-28 pb-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+    <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+      <ToolsSubNav />
+
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-        <div className="space-y-2.5">
-          <Badge variant="orange">
+        <div className="space-y-2.5 text-left">
+          <Badge variant="cyan">
             <Grid3X3 className="w-3.5 h-3.5" />
             <span>Minecraft Java · Drag Box &amp; Custom Size</span>
           </Badge>
           <h1 className="font-heading text-3xl sm:text-5xl font-bold text-text-primary tracking-tight">
-            Chunk Loader Calculator
+            Chunk Loader <span className="text-accent-cyan">Calculator</span>
           </h1>
           <p className="text-sm sm:text-base text-text-secondary max-w-3xl leading-relaxed">
             {isIt
               ? 'Trascina con il tasto sinistro per fare una selezione rettangolare omogenea (tieni premuto Shift per deselezionare). Imposta liberamente dimensione della griglia e lato dei loader.'
               : 'Left-click and drag to make a rectangular marquee selection (hold Shift + drag to deselect). Customize grid size and each loader coverage radius freely.'}
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
-          <Link
-            to="/tools/enchanting"
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-accent-orange" />
-            <span>{isIt ? 'Incantesimi & Incudine' : 'Enchant Optimizer'}</span>
-          </Link>
-          <Link
-            to="/tools/storage"
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5 text-accent-orange" />
-            <span>{isIt ? 'Calcolatori TMC' : 'TMC Calculators'}</span>
-          </Link>
         </div>
       </div>
 
@@ -370,7 +354,7 @@ export const ChunkLoaderPage: React.FC = () => {
               aria-label="Grid columns"
               value={gridColsInput}
               onChange={(e) => setGridColsInput(e.target.value)}
-              className="w-14 bg-white/[0.05] rounded px-1.5 py-0.5 text-center text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-orange"
+              className="w-14 bg-white/[0.05] rounded px-1.5 py-0.5 text-center text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-cyan"
             />
             <span className="text-xs font-mono text-text-muted">×</span>
             <input
@@ -380,7 +364,7 @@ export const ChunkLoaderPage: React.FC = () => {
               aria-label="Grid rows"
               value={gridRowsInput}
               onChange={(e) => setGridRowsInput(e.target.value)}
-              className="w-14 bg-white/[0.05] rounded px-1.5 py-0.5 text-center text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-orange"
+              className="w-14 bg-white/[0.05] rounded px-1.5 py-0.5 text-center text-xs font-mono text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-cyan"
             />
             <span className="text-[10px] font-mono text-text-muted">ch</span>
           </div>
@@ -403,7 +387,7 @@ export const ChunkLoaderPage: React.FC = () => {
           {/* Status + Center Jump */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-              <MousePointerClick className="w-4 h-4 text-accent-orange" />
+              <MousePointerClick className="w-4 h-4 text-accent-cyan" />
               <span className="text-text-secondary">
                 {isIt
                   ? `Selezionati: ${selectedChunks.size} chunk (${selectedChunks.size * 256} m²)`
@@ -421,7 +405,7 @@ export const ChunkLoaderPage: React.FC = () => {
                   className={`px-2 py-0.5 rounded text-[10px] border ${
                     dragBox?.mode === 'remove'
                       ? 'bg-rose-500/20 border-rose-400/45 text-rose-200'
-                      : 'bg-accent-orange/20 border-accent-orange/45 text-accent-orange'
+                      : 'bg-accent-cyan/20 border-accent-cyan/45 text-accent-cyan'
                   }`}
                 >
                   {activeBoxBounds.maxX - activeBoxBounds.minX + 1}×
@@ -448,7 +432,7 @@ export const ChunkLoaderPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleJumpCoords}
-                className="px-2 py-0.5 rounded bg-accent-orange/20 text-accent-orange text-[10px] font-mono font-semibold hover:bg-accent-orange/30 cursor-pointer"
+                className="px-2 py-0.5 rounded bg-accent-cyan/20 text-accent-cyan text-[10px] font-mono font-semibold hover:bg-accent-cyan/30 cursor-pointer"
               >
                 Go
               </button>
@@ -546,12 +530,12 @@ export const ChunkLoaderPage: React.FC = () => {
                     cellClasses = 'bg-white/[0.07] border-white/15 text-text-muted';
                   }
 
-                  let selectionRing = isSelected ? 'ring-2 ring-accent-orange ring-inset' : '';
+                  let selectionRing = isSelected ? 'ring-2 ring-accent-cyan ring-inset' : '';
                   if (inDragBox) {
                     selectionRing =
                       dragBox?.mode === 'remove'
                         ? 'ring-2 ring-rose-400 bg-rose-500/35 border-rose-300 z-10'
-                        : 'ring-2 ring-accent-orange bg-accent-orange/35 border-amber-200 z-10';
+                        : 'ring-2 ring-accent-cyan bg-accent-cyan/35 border-cyan-200 z-10';
                   }
 
                   return (
@@ -577,8 +561,8 @@ export const ChunkLoaderPage: React.FC = () => {
           {/* Grid Legend + Live Hover Readout */}
           <div className="pt-2 border-t border-white/[0.07] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 text-accent-orange">
-                <span className="w-3 h-3 rounded border-2 border-accent-orange bg-[#131720]" />
+              <span className="inline-flex items-center gap-1.5 text-accent-cyan">
+                <span className="w-3 h-3 rounded border-2 border-accent-cyan bg-[#131720]" />
                 {isIt ? 'Seleziona: Drag Sx' : 'Select: Left Drag'}
               </span>
               <span className="inline-flex items-center gap-1.5 text-rose-300">
@@ -859,7 +843,7 @@ export const ChunkLoaderPage: React.FC = () => {
 
             {selectedChunks.size === 0 ? (
               <div className="p-4 rounded-xl bg-[#101216]/90 border border-white/[0.07] text-xs text-text-secondary flex items-start gap-2.5">
-                <Eraser className="w-4 h-4 text-accent-orange shrink-0 mt-0.5" />
+                <Eraser className="w-4 h-4 text-accent-cyan shrink-0 mt-0.5" />
                 <span>
                   {isIt
                     ? 'Nessun chunk selezionato. Trascina con il tasto sinistro sulla griglia per selezionare un rettangolo (Shift + Drag per deselezionare).'
@@ -922,7 +906,7 @@ export const ChunkLoaderPage: React.FC = () => {
             )}
 
             <div className="pt-2 border-t border-white/[0.06] flex items-start gap-2 text-[11px] text-text-muted leading-relaxed">
-              <Info className="w-3.5 h-3.5 text-accent-orange shrink-0 mt-0.5" />
+              <Info className="w-3.5 h-3.5 text-accent-cyan shrink-0 mt-0.5" />
               <span>
                 {isIt
                   ? 'Drag sinistro = aggiungi rettangolo · Shift + Drag sinistro (o tasto destro) = rimuovi rettangolo.'

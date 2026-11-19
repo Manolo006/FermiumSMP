@@ -24,7 +24,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center font-heading font-medium rounded-xl transition-all duration-150 ease-out-Quart active:scale-[0.96] cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-orange/70 disabled:opacity-50 disabled:pointer-events-none';
+    'inline-flex items-center justify-center font-heading font-medium rounded-xl transition-[transform,background-color,border-color,color,box-shadow] duration-150 ease-out-Quart active:scale-[0.96] cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/80 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-main disabled:opacity-50 disabled:pointer-events-none';
 
   const sizeStyles = {
     sm: 'text-xs px-3.5 py-2 gap-1.5',
@@ -34,11 +34,11 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantStyles = {
     primary:
-      'bg-accent-orange text-[#101216] font-semibold hover:bg-accent-orange-hover shadow-[0_1px_0_0_rgba(255,255,255,0.25)_inset] hover:shadow-glow-orange',
+      'bg-accent-cyan text-[#061018] font-semibold hover:bg-accent-cyan-hover shadow-[0_1px_0_0_rgba(255,255,255,0.35)_inset] hover:shadow-glow-cyan',
     secondary:
       'bg-white/[0.05] text-text-primary border border-white/10 hover:bg-white/[0.09] hover:border-white/20 backdrop-blur-md shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset]',
     outline:
-      'bg-accent-orange/[0.06] text-accent-orange border border-accent-orange/35 hover:bg-accent-orange/15 hover:border-accent-orange/70',
+      'bg-accent-cyan/[0.06] text-accent-cyan border border-accent-cyan/35 hover:bg-accent-cyan/15 hover:border-accent-cyan/70',
     ghost:
       'bg-transparent text-text-secondary hover:text-text-primary hover:bg-white/[0.05]',
   };

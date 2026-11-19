@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import type { Member, MemberStats } from '../../types';
+import { BarChart3, Search, X } from 'lucide-react';
+import type { Member, MemberRoleGroup, MemberStats } from '../../types';
 import { membersList as defaultMembers, sortMembersByRole } from '../../data/members';
 import {
   buildFallbackStatsForName,
@@ -10,11 +11,15 @@ import { Badge } from '../ui/Badge';
 import { MemberCard, type MemberCardOriginRects } from '../ui/MemberCard';
 import { MemberStatsModal } from '../ui/MemberStatsModal';
 
+type MemberRoleFilter = 'all' | MemberRoleGroup;
+
 export const MembersPreview: React.FC = () => {
   const { t } = useLanguage();
   const [members, setMembers] = useState<Member[]>(defaultMembers);
   const [statsList, setStatsList] = useState<MemberStats[]>(defaultMemberStats);
-  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [roleFilter, setRoleFilter] = useState<MemberRoleFilter>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [originMetrics, setOriginMetrics] = useState<MemberCardOriginRects | null>(null);
 
   useEffect(() => {
@@ -90,46 +95,162 @@ export const MembersPreview: React.FC = () => {
     };
   }, [memberMetrics]);
 
-  const selectedMember = selectedIdx !== null ? members[selectedIdx] ?? null : null;
-  const selectedStats = selectedIdx !== null ? memberMetrics[selectedIdx] ?? null : null;
+  // Role counts
+  const roleCounts = useMemo(() => {
+    const counts = { all: members.length, owner: 0, member: 0, trial: 0 };
+    for (const m of members) {
+      counts[m.roleGroup] += 1;
+    }
+    return counts;
+  }, [members]);
+
+  // Filtered members
+  const filteredMembers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return members.filter((m) => {
+      if (roleFilter !== 'all' && m.roleGroup !== roleFilter) return false;
+      if (q && !m.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [members, roleFilter, searchQuery]);
+
+  const selectedGlobalIdx = useMemo(() => {
+    if (!selectedMemberId) return null;
+    const idx = members.findIndex((m) => m.id === selectedMemberId);
+    return idx >= 0 ? idx : null;
+  }, [members, selectedMemberId]);
+
+  const selectedMember = selectedGlobalIdx !== null ? members[selectedGlobalIdx] ?? null : null;
+  const selectedStats = selectedGlobalIdx !== null ? memberMetrics[selectedGlobalIdx] ?? null : null;
   const selectedRank = selectedMember
     ? rankByName.get(selectedMember.name.toLowerCase()) ?? 1
     : 1;
 
+  const filterOrder: MemberRoleFilter[] = ['all', 'owner', 'member', 'trial'];
+
+  const roleDot: Record<MemberRoleFilter, string | null> = {
+    all: null,
+    owner: 'bg-role-owner',
+    member: 'bg-role-member',
+    trial: 'bg-role-trial',
+  };
+
   return (
     <section
       id="members"
-      className="relative py-24 sm:py-32 bg-bg-secondary/50 border-t border-white/[0.06]"
+      className="relative py-24 sm:py-32 bg-bg-main border-t border-white/[0.06]"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="max-w-xl text-left mb-12">
-          <div className="mb-3">
-            <Badge variant="orange">{t.members.tag}</Badge>
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10 text-left">
+          <div className="max-w-xl">
+            <div className="mb-3">
+              <Badge variant="cyan">{t.members.tag}</Badge>
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold tracking-tight text-text-primary">
+              {t.members.title}{' '}
+              <span className="text-accent-cyan">{t.members.titleAccent}</span>
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-text-secondary leading-relaxed">
+              {t.members.subtitle}
+            </p>
+            <p className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-mono text-text-muted">
+              <BarChart3 className="w-3.5 h-3.5 text-accent-cyan shrink-0" />
+              <span>{t.members.clickHint}</span>
+            </p>
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold tracking-tight text-text-primary">
-            {t.members.title}{' '}
-            <span className="text-accent-orange">{t.members.titleAccent}</span>
-          </h2>
-          <p className="mt-3 text-sm sm:text-base text-text-secondary leading-relaxed">
-            {t.members.subtitle}
-          </p>
+
+          {/* Search Input */}
+          <div className="relative w-full lg:w-72 shrink-0">
+            <label htmlFor="member-search" className="sr-only">
+              {t.members.searchPlaceholder}
+            </label>
+            <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              id="member-search"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t.members.searchPlaceholder}
+              className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-base sm:text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/60 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label={t.members.clearFilters}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.06] cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Role Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mb-8">
+          {filterOrder.map((role) => {
+            const active = roleFilter === role;
+            const count = roleCounts[role];
+            if (role !== 'all' && count === 0) return null;
+            return (
+              <button
+                key={role}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setRoleFilter(role)}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-[background-color,color,border-color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.96] whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/80 ${
+                  active
+                    ? 'bg-accent-cyan text-[#061018] font-semibold shadow-glow-cyan'
+                    : 'bg-white/[0.04] text-text-secondary border border-white/10 hover:text-text-primary hover:bg-white/[0.08]'
+                }`}
+              >
+                {roleDot[role] && !active && (
+                  <span className={`w-2 h-2 rounded-full ${roleDot[role]}`} />
+                )}
+                <span>{t.members.filters[role]}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono tabular-nums ${
+                    active ? 'bg-[#061018]/15 text-[#061018]' : 'bg-white/[0.06] text-text-muted'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Members Grid (Ordinati: Owner -> Member -> Trial) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7">
-          {members.map((member, idx) => (
-            <MemberCard
-              key={member.id}
-              member={member}
-              isHidden={selectedMember?.id === member.id}
-              onSelect={(_, metrics) => {
-                setOriginMetrics(metrics);
-                setSelectedIdx(idx);
+        {filteredMembers.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7">
+            {filteredMembers.map((member) => (
+              <MemberCard
+                key={member.id}
+                member={member}
+                isHidden={selectedMember?.id === member.id}
+                onSelect={(m, metrics) => {
+                  setOriginMetrics(metrics);
+                  setSelectedMemberId(m.id);
+                }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="glass-panel rounded-2xl p-10 text-center">
+            <p className="text-sm text-text-secondary mb-4">{t.members.noResults}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setRoleFilter('all');
+                setSearchQuery('');
               }}
-            />
-          ))}
-        </div>
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-cyan/15 border border-accent-cyan/35 text-xs font-mono font-semibold text-accent-cyan hover:bg-accent-cyan/25 transition-colors cursor-pointer"
+            >
+              {t.members.clearFilters}
+            </button>
+          </div>
+        )}
       </div>
 
       <MemberStatsModal
@@ -141,19 +262,19 @@ export const MembersPreview: React.FC = () => {
         maxCarpetScore={maxCarpetScore}
         maxBlocksMined={maxBlocksMined}
         onClose={() => {
-          setSelectedIdx(null);
+          setSelectedMemberId(null);
           setOriginMetrics(null);
         }}
-        onPrev={() =>
-          setSelectedIdx((prev) =>
-            prev === null ? null : (prev - 1 + members.length) % members.length
-          )
-        }
-        onNext={() =>
-          setSelectedIdx((prev) =>
-            prev === null ? null : (prev + 1) % members.length
-          )
-        }
+        onPrev={() => {
+          if (selectedGlobalIdx === null) return;
+          const prevIdx = (selectedGlobalIdx - 1 + members.length) % members.length;
+          setSelectedMemberId(members[prevIdx].id);
+        }}
+        onNext={() => {
+          if (selectedGlobalIdx === null) return;
+          const nextIdx = (selectedGlobalIdx + 1) % members.length;
+          setSelectedMemberId(members[nextIdx].id);
+        }}
       />
     </section>
   );

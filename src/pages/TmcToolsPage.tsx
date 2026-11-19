@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Package,
   Layers,
@@ -8,11 +7,10 @@ import {
   Copy,
   Check,
   Gauge,
-  Grid3X3,
-  Sparkles,
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Badge } from '../components/ui/Badge';
+import { ToolsSubNav } from '../components/navigation/ToolsSubNav';
 
 export const TmcToolsPage: React.FC = () => {
   const { lang } = useLanguage();
@@ -143,15 +141,17 @@ export const TmcToolsPage: React.FC = () => {
   return (
     <div className="min-h-screen pt-32 pb-24 bg-bg-main">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <ToolsSubNav />
+
         {/* Page Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-12">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-10">
           <div className="max-w-2xl text-left">
             <div className="mb-3">
-              <Badge variant="orange">Technical Minecraft Tools</Badge>
+              <Badge variant="cyan">Technical Minecraft Tools</Badge>
             </div>
             <h1 className="text-3xl sm:text-5xl font-heading font-bold tracking-tight text-text-primary">
               {isIt ? 'Calcolatori ' : 'TMC '}
-              <span className="text-accent-orange">
+              <span className="text-accent-cyan">
                 {isIt ? 'Tecnici TMC' : 'Calculators'}
               </span>
             </h1>
@@ -161,29 +161,12 @@ export const TmcToolsPage: React.FC = () => {
                 : 'Fast utilities to convert items, stacks (64 or 16) and Shulker Boxes, calculate Nether ↔ Overworld coordinates, region files, and Shulker Loader speeds.'}
             </p>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
-            <Link
-              to="/tools/chunk-loader"
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
-            >
-              <Grid3X3 className="w-3.5 h-3.5 text-accent-orange" />
-              <span>Chunk Loader</span>
-            </Link>
-            <Link
-              to="/tools/enchanting"
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-text-secondary hover:text-text-primary transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-accent-orange" />
-              <span>{isIt ? 'Incantesimi & Incudine' : 'Enchant Optimizer'}</span>
-            </Link>
-          </div>
         </div>
 
         {/* Stack Size Selector Bar (64 vs 16) */}
         <div className="glass-panel rounded-2xl p-4 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-left">
-            <div className="w-10 h-10 rounded-xl bg-accent-orange/10 border border-accent-orange/25 flex items-center justify-center text-accent-orange shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-accent-cyan/10 border border-accent-cyan/25 flex items-center justify-center text-accent-cyan shrink-0">
               <Layers className="w-5 h-5" />
             </div>
             <div>
@@ -204,7 +187,7 @@ export const TmcToolsPage: React.FC = () => {
               onClick={() => setStackSize(64)}
               className={`px-4 py-2 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
                 stackSize === 64
-                  ? 'bg-accent-orange text-[#101216] shadow-glow-orange'
+                  ? 'bg-accent-cyan text-[#061018] shadow-glow-cyan'
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
@@ -215,7 +198,7 @@ export const TmcToolsPage: React.FC = () => {
               onClick={() => setStackSize(16)}
               className={`px-4 py-2 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
                 stackSize === 16
-                  ? 'bg-accent-orange text-[#101216] shadow-glow-orange'
+                  ? 'bg-accent-cyan text-[#061018] shadow-glow-cyan'
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
@@ -231,12 +214,12 @@ export const TmcToolsPage: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">
-                  <Package className="w-5 h-5 text-accent-orange" />
+                  <Package className="w-5 h-5 text-accent-cyan" />
                   <h3 className="text-lg font-heading font-bold text-text-primary">
                     {isIt ? 'Item → Stack & Shulker Box' : 'Items → Stacks & Shulkers'}
                   </h3>
                 </div>
-                <span className="text-xs font-mono text-accent-orange px-2.5 py-1 rounded-lg bg-accent-orange/10 border border-accent-orange/20">
+                <span className="text-xs font-mono text-accent-cyan px-2.5 py-1 rounded-lg bg-accent-cyan/10 border border-accent-cyan/20">
                   Stack {stackSize}
                 </span>
               </div>
@@ -250,8 +233,26 @@ export const TmcToolsPage: React.FC = () => {
                 value={rawItemsInput}
                 onChange={(e) => setRawItemsInput(e.target.value)}
                 placeholder="Es. 17280"
-                className="w-full px-4 py-3 rounded-xl bg-[#101216] border border-white/10 focus:border-accent-orange focus:outline-none text-lg font-mono text-text-primary mb-6"
+                className="w-full px-4 py-3 rounded-xl bg-[#0B0F14] border border-white/10 focus:border-accent-cyan focus:outline-none text-lg font-mono text-text-primary tabular-nums mb-3"
               />
+              {/* Quick TMC Preset Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 mb-5">
+                {[
+                  { label: '1 Shulker', val: itemsPerShulker },
+                  { label: '1 Double Chest', val: itemsPerDoubleChestOfShulkers },
+                  { label: '10k', val: 10000 },
+                  { label: '100k', val: 100000 },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setRawItemsInput(String(preset.val))}
+                    className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-accent-cyan/15 border border-white/10 hover:border-accent-cyan/35 text-[11px] font-mono text-text-secondary hover:text-accent-cyan transition-colors cursor-pointer"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -263,7 +264,7 @@ export const TmcToolsPage: React.FC = () => {
                     : 'Shulker Boxes + Stacks + Items'}
                 </div>
                 <div className="text-xl sm:text-2xl font-heading font-bold text-text-primary flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-accent-orange">{fullShulkers.toLocaleString()}</span>
+                  <span className="text-accent-cyan">{fullShulkers.toLocaleString()}</span>
                   <span className="text-xs font-mono text-text-secondary">SB</span>
                   <span className="text-text-muted">+</span>
                   <span>{remainingStacksInShulker}</span>
@@ -283,7 +284,7 @@ export const TmcToolsPage: React.FC = () => {
                   <div className="text-base sm:text-lg font-heading font-bold text-text-primary">
                     {totalStacksOnly.toLocaleString()} <span className="text-xs font-mono text-text-secondary">Stack</span>
                     {remainderItemsOnly > 0 && (
-                      <span className="text-xs font-mono text-accent-orange ml-1.5">
+                      <span className="text-xs font-mono text-accent-cyan ml-1.5">
                         +{remainderItemsOnly}
                       </span>
                     )}
@@ -310,12 +311,12 @@ export const TmcToolsPage: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">
-                  <Layers className="w-5 h-5 text-accent-orange" />
+                  <Layers className="w-5 h-5 text-accent-cyan" />
                   <h3 className="text-lg font-heading font-bold text-text-primary">
                     {isIt ? 'Shulker & Stack → Totale Item' : 'Shulkers & Stacks → Total Items'}
                   </h3>
                 </div>
-                <span className="text-xs font-mono text-accent-orange px-2.5 py-1 rounded-lg bg-accent-orange/10 border border-accent-orange/20">
+                <span className="text-xs font-mono text-accent-cyan px-2.5 py-1 rounded-lg bg-accent-cyan/10 border border-accent-cyan/20">
                   Stack {stackSize}
                 </span>
               </div>
@@ -330,7 +331,7 @@ export const TmcToolsPage: React.FC = () => {
                     min="0"
                     value={shulkerCountInput}
                     onChange={(e) => setShulkerCountInput(e.target.value)}
-                    className="w-full px-3.5 py-3 rounded-xl bg-[#101216] border border-white/10 focus:border-accent-orange focus:outline-none text-base font-mono text-text-primary"
+                    className="w-full px-3.5 py-3 rounded-xl bg-[#101216] border border-white/10 focus:border-accent-cyan focus:outline-none text-base font-mono text-text-primary"
                   />
                 </div>
 
@@ -343,7 +344,7 @@ export const TmcToolsPage: React.FC = () => {
                     min="0"
                     value={stackCountInput}
                     onChange={(e) => setStackCountInput(e.target.value)}
-                    className="w-full px-3.5 py-3 rounded-xl bg-[#101216] border border-white/10 focus:border-accent-orange focus:outline-none text-base font-mono text-text-primary"
+                    className="w-full px-3.5 py-3 rounded-xl bg-[#101216] border border-white/10 focus:border-accent-cyan focus:outline-none text-base font-mono text-text-primary"
                   />
                 </div>
 
@@ -356,7 +357,7 @@ export const TmcToolsPage: React.FC = () => {
                     min="0"
                     value={looseItemsInput}
                     onChange={(e) => setLooseItemsInput(e.target.value)}
-                    className="w-full px-3.5 py-3 rounded-xl bg-[#101216] border border-white/10 focus:border-accent-orange focus:outline-none text-base font-mono text-text-primary"
+                    className="w-full px-3.5 py-3 rounded-xl bg-[#101216] border border-white/10 focus:border-accent-cyan focus:outline-none text-base font-mono text-text-primary"
                   />
                 </div>
               </div>
@@ -367,7 +368,7 @@ export const TmcToolsPage: React.FC = () => {
                 <div className="text-[11px] font-mono uppercase tracking-wider text-text-muted mb-1">
                   {isIt ? 'Totale Complessivo Item' : 'Exact Total Items'}
                 </div>
-                <div className="text-2xl sm:text-3xl font-heading font-bold text-accent-orange">
+                <div className="text-2xl sm:text-3xl font-heading font-bold text-accent-cyan">
                   {totalItemsB.toLocaleString()}{' '}
                   <span className="text-xs font-mono text-text-secondary">Item</span>
                 </div>
@@ -392,7 +393,7 @@ export const TmcToolsPage: React.FC = () => {
           <div className="lg:col-span-7 glass-panel rounded-2xl p-6 text-left">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2.5">
-                <Compass className="w-5 h-5 text-accent-orange" />
+                <Compass className="w-5 h-5 text-accent-cyan" />
                 <h3 className="text-lg font-heading font-bold text-text-primary">
                   {isIt
                     ? 'Convertitore Coordinate Overworld ↔ Nether'
@@ -530,7 +531,7 @@ export const TmcToolsPage: React.FC = () => {
                 <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted block mb-1">
                   {isIt ? 'File Regione (.mca)' : 'Region File (.mca)'}
                 </span>
-                <span className="text-sm font-mono font-semibold text-accent-orange">
+                <span className="text-sm font-mono font-semibold text-accent-cyan">
                   r.{regionX}.{regionZ}.mca
                 </span>
               </div>
@@ -541,7 +542,7 @@ export const TmcToolsPage: React.FC = () => {
           <div className="lg:col-span-5 glass-panel rounded-2xl p-6 text-left flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2.5 mb-5">
-                <Gauge className="w-5 h-5 text-accent-orange" />
+                <Gauge className="w-5 h-5 text-accent-cyan" />
                 <h3 className="text-lg font-heading font-bold text-text-primary">
                   {isIt ? 'Produzione Farm → Shulker Loader' : 'Farm Rate → Shulker Loaders'}
                 </h3>
@@ -556,7 +557,7 @@ export const TmcToolsPage: React.FC = () => {
                 step="1000"
                 value={itemsPerHourInput}
                 onChange={(e) => setItemsPerHourInput(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-[#101216] border border-white/10 focus:border-accent-orange focus:outline-none text-lg font-mono text-text-primary mb-5"
+                className="w-full px-4 py-3 rounded-xl bg-[#101216] border border-white/10 focus:border-accent-cyan focus:outline-none text-lg font-mono text-text-primary mb-5"
               />
             </div>
 
@@ -565,7 +566,7 @@ export const TmcToolsPage: React.FC = () => {
                 <span className="text-xs font-mono text-text-secondary">
                   Hopper Speed (9.000/h):
                 </span>
-                <span className="text-base font-mono font-bold text-accent-orange">
+                <span className="text-base font-mono font-bold text-accent-cyan">
                   {hopperMultiple.toFixed(2)}x Hopper
                 </span>
               </div>

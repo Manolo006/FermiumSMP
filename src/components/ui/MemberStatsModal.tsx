@@ -677,9 +677,9 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
       key: 'blocksMined',
       label: isIt ? 'Blocchi Rotti' : 'Blocks Mined',
       icon: Pickaxe,
-      accent: 'text-accent-orange',
-      hoverBorder: 'hover:border-accent-orange/35',
-      bgGlow: 'from-accent-orange/15 to-transparent',
+      accent: 'text-accent-cyan',
+      hoverBorder: 'hover:border-accent-cyan/35',
+      bgGlow: 'from-accent-cyan/15 to-transparent',
     },
     {
       key: 'playTimeHours',
@@ -729,7 +729,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={`${member.name} Minecraft Stats`}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto overscroll-contain"
     >
       {/* Blurred Backdrop */}
       <div
@@ -777,7 +777,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
         <div
           ref={scanLineRef}
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent via-accent-orange/20 to-transparent z-30 opacity-0"
+          className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent via-accent-cyan/25 to-transparent z-30 opacity-0"
         />
 
         {/* TOP HEADER: Name rises cleanly up here + Rank + Role + Controls */}
@@ -813,7 +813,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
 
             <span
               data-hud-chrome
-              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider bg-accent-orange/10 border border-accent-orange/25 text-accent-orange"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider bg-accent-cyan/10 border border-accent-cyan/25 text-accent-cyan"
             >
               <Box className="w-3 h-3" />
               <span>Carpet /stats</span>
@@ -867,7 +867,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono bg-white/[0.05] border border-white/10 text-text-secondary hover:text-white cursor-pointer transition-colors active:scale-[0.95]"
                 title={isIt ? 'Cambia vista Busto / Corpo Intero' : 'Toggle Bust / Full Body'}
               >
-                <RotateCw className="w-3 h-3 text-accent-orange" />
+                <RotateCw className="w-3 h-3 text-accent-cyan" />
                 <span>{skinMode === 'bust' ? 'Bust' : 'Full 3D'}</span>
               </button>
             </div>
@@ -910,7 +910,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
 
             <div data-hud-chrome className="w-full text-center z-10 pt-3 border-t border-white/[0.07]">
               <div className="inline-flex items-center gap-1.5 text-xs font-mono text-text-secondary">
-                <Footprints className="w-3.5 h-3.5 text-accent-orange" />
+                <Footprints className="w-3.5 h-3.5 text-accent-cyan" />
                 <span>{isIt ? 'Distanza:' : 'Distance:'}</span>
                 <span
                   ref={(el) => {
@@ -982,7 +982,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
                         ref={(el) => {
                           counterRefs.current.carpetPct = el;
                         }}
-                        className="text-accent-orange font-semibold tabular-nums"
+                        className="text-accent-cyan font-semibold tabular-nums"
                       >
                         {serverSharePct}%
                       </span>
@@ -991,7 +991,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
                       <div
                         data-stat-bar
                         style={{ width: `${serverSharePct}%`, transformOrigin: 'left center' }}
-                        className="h-full rounded-full bg-gradient-to-r from-accent-orange to-amber-300 shadow-[0_0_12px_rgba(240,138,54,0.45)]"
+                        className="h-full rounded-full bg-gradient-to-r from-accent-cyan-deep to-accent-cyan-hover shadow-[0_0_12px_rgba(34,211,238,0.45)]"
                       />
                     </div>
                   </div>

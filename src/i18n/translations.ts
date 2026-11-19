@@ -30,6 +30,8 @@ export const translations = {
       status: 'Stato Server',
       statusSub: 'Informazioni sul server',
       discord: 'Discord',
+      soon: 'Presto',
+      skipToContent: 'Salta al contenuto principale',
     },
     hero: {
       tag: 'Minecraft Technical SMP',
@@ -103,6 +105,48 @@ export const translations = {
       },
       skinPlaceholder: '',
       viewAll: 'Membri',
+      searchPlaceholder: 'Cerca giocatore...',
+      clickHint: 'Seleziona un membro per aprire le statistiche 3D e i blocchi scavati',
+      noResults: 'Nessun membro corrisponde alla ricerca.',
+      clearFilters: 'Ripristina filtri',
+    },
+    toolsShowcase: {
+      tag: 'Strumenti TMC',
+      title: 'La Suite Tecnica di',
+      titleAccent: 'Fermium',
+      subtitle:
+        'Strumenti interattivi pensati per la survival tecnica: esplora la mappa 3D, pianifica i chunk loader, ottimizza gli incantesimi in incudine e scarica gli schematic.',
+      openTool: 'Apri strumento',
+      items: {
+        worldMap: {
+          title: 'Mappa 3D del Mondo',
+          badge: 'BlueMap 3D',
+          desc: 'Esplora Overworld, Nether ed End in vista prospettica, piatta o volo libero direttamente dal browser.',
+        },
+        enchanting: {
+          title: 'Incudine & Incantesimi',
+          badge: '1.21.x Ready',
+          desc: 'Calcola l’albero ottimale per combinare libri e attrezzi spendendo il minimo di XP senza mai arrivare a "Troppo Costoso!".',
+        },
+        chunkLoader: {
+          title: 'Chunk Loader Calculator',
+          badge: 'Griglia Interattiva',
+          desc: 'Seleziona l’area della farm su griglia fino a 100×100 e ottieni il piazzamento minimo per Portali, Perle 1.21.2+ e Bot.',
+        },
+        storage: {
+          title: 'Calcolatori TMC',
+          badge: 'Stack & Coords',
+          desc: 'Convertitore istantaneo item ↔ stack (64/16) ↔ Shulker Box, coordinate Nether/Overworld e velocità Shulker Loader.',
+        },
+        archive: {
+          title: 'Archivio Schematics',
+          badge: '.litematic',
+          desc: 'Scarica file .litematic del server con anteprima isometrica 3D interattiva, rotazione e lista blocchi.',
+        },
+      },
+    },
+    common: {
+      backToTop: 'Torna in cima',
     },
     projects: {
       tag: 'Progetti Tecnici',
@@ -213,6 +257,8 @@ export const translations = {
       status: 'Server Status',
       statusSub: 'Server information',
       discord: 'Discord',
+      soon: 'Soon',
+      skipToContent: 'Skip to main content',
     },
     hero: {
       tag: 'Minecraft Technical SMP',
@@ -286,6 +332,48 @@ export const translations = {
       },
       skinPlaceholder: '',
       viewAll: 'Members',
+      searchPlaceholder: 'Search player...',
+      clickHint: 'Select any member to inspect 3D stats and mined blocks',
+      noResults: 'No members match your current filter.',
+      clearFilters: 'Reset filters',
+    },
+    toolsShowcase: {
+      tag: 'TMC Suite',
+      title: 'Technical Tools by',
+      titleAccent: 'Fermium',
+      subtitle:
+        'Interactive utilities built for technical survival: explore the 3D world map, plan chunk loaders, optimize anvil enchanting orders, and browse schematics.',
+      openTool: 'Open tool',
+      items: {
+        worldMap: {
+          title: '3D World Map',
+          badge: 'BlueMap 3D',
+          desc: 'Explore Overworld, Nether, and The End in perspective, flat, or free-flight mode right in your browser.',
+        },
+        enchanting: {
+          title: 'Anvil & Enchant Optimizer',
+          badge: '1.21.x Ready',
+          desc: 'Compute the optimal binary anvil tree to combine books and gear with minimum XP levels and zero "Too Expensive!" blocks.',
+        },
+        chunkLoader: {
+          title: 'Chunk Loader Calculator',
+          badge: 'Interactive Grid',
+          desc: 'Marquee-select your farm footprint up to 100×100 and compute optimal placements for Portals, 1.21.2+ Pearls, and Bots.',
+        },
+        storage: {
+          title: 'TMC Calculators',
+          badge: 'Stacks & Coords',
+          desc: 'Instant item ↔ stack (64/16) ↔ Shulker Box converter, Nether/Overworld coordinates, and Shulker Loader hopper rates.',
+        },
+        archive: {
+          title: 'Schematics Archive',
+          badge: '.litematic',
+          desc: 'Download server .litematic files with interactive 3D isometric previews, layer slicing, and full block material lists.',
+        },
+      },
+    },
+    common: {
+      backToTop: 'Back to top',
     },
     projects: {
       tag: 'Technical Projects',

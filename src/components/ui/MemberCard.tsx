@@ -67,13 +67,13 @@ export const MemberCard: React.FC<MemberCardProps> = ({
     <button
       type="button"
       onClick={handleClick}
-      className={`group relative flex flex-col items-center pt-4 pb-2 px-2 select-none w-full text-center cursor-pointer transition-[transform,opacity] duration-150 ease-out-Quart active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-orange/70 rounded-3xl ${
+      className={`group relative flex flex-col items-center pt-4 pb-2 px-2 select-none w-full text-center cursor-pointer transition-[transform,opacity] duration-150 ease-out-Quart active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/80 rounded-3xl ${
         isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
       {/* Subtle Hover Stats Hint */}
-      <span className="absolute top-3 right-4 z-20 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#141820]/90 border border-white/15 text-text-secondary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 pointer-events-none">
-        <BarChart3 className="w-3 h-3 text-accent-orange" />
+      <span className="absolute top-3 right-4 z-20 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#0E141D]/90 border border-white/15 text-text-secondary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-visible:opacity-100 group-focus-visible:translate-y-0 transition-[opacity,transform] duration-200 pointer-events-none">
+        <BarChart3 className="w-3 h-3 text-accent-cyan" />
         <span>Stats</span>
       </span>
 

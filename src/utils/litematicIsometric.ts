@@ -271,7 +271,7 @@ export function renderLitematicToCanvas(
   // Draw ground grid & back Litematica selection wireframe
   if (showWireframe) {
     ctx.save();
-    ctx.fillStyle = 'rgba(240, 136, 50, 0.03)';
+    ctx.fillStyle = 'rgba(34, 211, 238, 0.04)';
     ctx.beginPath();
     ctx.moveTo(projX(0, 0), projY(0, 0, 0));
     ctx.lineTo(projX(spanU, 0), projY(spanU, 0, 0));

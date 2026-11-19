@@ -2,7 +2,7 @@ import React from 'react';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'orange' | 'neutral' | 'owner' | 'member' | 'trial';
+  variant?: 'cyan' | 'neutral' | 'owner' | 'member' | 'trial';
   className?: string;
 }
 
@@ -12,8 +12,8 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
 }) => {
   const variantStyles = {
-    orange:
-      'bg-accent-orange/10 text-accent-orange border-accent-orange/25',
+    cyan:
+      'bg-accent-cyan/10 text-accent-cyan border-accent-cyan/25',
     neutral:
       'bg-white/[0.04] text-text-secondary border-white/10',
     owner:
@@ -26,7 +26,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-md select-none ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-md select-none whitespace-nowrap ${variantStyles[variant]} ${className}`}
     >
       {children}
     </span>

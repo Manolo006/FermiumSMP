@@ -5,7 +5,7 @@ interface PlaceholderSurfaceProps {
   title?: string;
   subtitle?: string;
   type?: 'image' | 'member';
-  accentColor?: 'orange' | 'owner' | 'member' | 'trial';
+  accentColor?: 'cyan' | 'owner' | 'member' | 'trial';
   className?: string;
 }
 
@@ -13,18 +13,18 @@ export const PlaceholderSurface: React.FC<PlaceholderSurfaceProps> = ({
   title,
   subtitle,
   type = 'image',
-  accentColor = 'orange',
+  accentColor = 'cyan',
   className = '',
 }) => {
   const glowMap = {
-    orange: 'from-accent-orange/10 via-transparent to-transparent',
+    cyan: 'from-accent-cyan/10 via-transparent to-transparent',
     owner: 'from-role-owner/15 via-transparent to-transparent',
     member: 'from-role-member/15 via-transparent to-transparent',
     trial: 'from-role-trial/15 via-transparent to-transparent',
   };
 
   const iconColorMap = {
-    orange: 'text-accent-orange/70 border-accent-orange/20 bg-accent-orange/[0.06]',
+    cyan: 'text-accent-cyan/80 border-accent-cyan/25 bg-accent-cyan/[0.06]',
     owner: 'text-role-owner/80 border-role-owner/25 bg-role-owner/[0.08]',
     member: 'text-role-member/80 border-role-member/25 bg-role-member/[0.08]',
     trial: 'text-role-trial/80 border-role-trial/25 bg-role-trial/[0.08]',
@@ -32,7 +32,7 @@ export const PlaceholderSurface: React.FC<PlaceholderSurfaceProps> = ({
 
   return (
     <div
-      className={`relative w-full h-full flex flex-col items-center justify-center p-6 text-center overflow-hidden bg-[#13161C] pattern-dots select-none ${className}`}
+      className={`relative w-full h-full flex flex-col items-center justify-center p-6 text-center overflow-hidden bg-[#10151E] pattern-dots select-none ${className}`}
     >
       {/* Subtle radial ambient wash */}
       <div
@@ -56,7 +56,7 @@ export const PlaceholderSurface: React.FC<PlaceholderSurfaceProps> = ({
           </span>
         )}
         {subtitle && (
-          <span className="text-[11px] text-text-secondary/75 mt-1 leading-relaxed">
+          <span className="text-[11px] text-text-secondary/80 mt-1 leading-relaxed">
             {subtitle}
           </span>
         )}

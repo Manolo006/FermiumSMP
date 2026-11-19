@@ -8,9 +8,9 @@ export const About: React.FC = () => {
   const { t } = useLanguage();
 
   const icons = [
-    <Cpu key="cpu" className="w-4 h-4 text-accent-orange" />,
-    <Layers key="layers" className="w-4 h-4 text-accent-orange" />,
-    <Users key="users" className="w-4 h-4 text-accent-orange" />,
+    <Cpu key="cpu" className="w-4 h-4 text-accent-cyan" />,
+    <Layers key="layers" className="w-4 h-4 text-accent-cyan" />,
+    <Users key="users" className="w-4 h-4 text-accent-cyan" />,
   ];
 
   return (
@@ -23,12 +23,12 @@ export const About: React.FC = () => {
           {/* Left Column: Editorial Text */}
           <div className="lg:col-span-6 text-left">
             <div className="mb-4">
-              <Badge variant="orange">{t.about.tag}</Badge>
+              <Badge variant="cyan">{t.about.tag}</Badge>
             </div>
 
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold tracking-tight text-text-primary leading-tight mb-6">
               {t.about.title}{' '}
-              <span className="text-accent-orange">{t.about.titleAccent}</span>
+              <span className="text-accent-cyan">{t.about.titleAccent}</span>
             </h2>
 
             <p className="text-base text-text-secondary leading-relaxed mb-4">
@@ -44,9 +44,9 @@ export const About: React.FC = () => {
               {t.about.features.map((feat, idx) => (
                 <div
                   key={idx}
-                  className="glass-panel rounded-2xl p-4 flex items-start gap-3.5 transition-colors hover:border-white/15"
+                  className="glass-panel rounded-2xl p-4 flex items-start gap-3.5 transition-colors hover:border-accent-cyan/30"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-accent-orange/10 border border-accent-orange/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-9 h-9 rounded-xl bg-accent-cyan/10 border border-accent-cyan/25 flex items-center justify-center shrink-0 mt-0.5">
                     {icons[idx]}
                   </div>
                   <div>
@@ -64,15 +64,15 @@ export const About: React.FC = () => {
 
           {/* Right Column: Screenshot Frame */}
           <div className="lg:col-span-6">
-            <div className="glass-panel rounded-2xl p-2.5">
-              <div className="aspect-[4/3] w-full rounded-xl overflow-hidden border border-white/[0.06] relative bg-[#12151B]">
+            <div className="glass-panel border-gradient-cyan rounded-2xl p-2.5">
+              <div className="aspect-[4/3] w-full rounded-xl overflow-hidden img-outline-dark relative bg-[#0E131B]">
                 <img
                   src={aboutScreenshot}
                   alt="Fermium SMP Redstone Engineering"
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#101216]/50 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F14]/50 via-transparent to-transparent pointer-events-none" />
               </div>
             </div>
           </div>

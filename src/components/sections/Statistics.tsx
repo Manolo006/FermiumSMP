@@ -17,15 +17,15 @@ export const Statistics: React.FC = () => {
   const getIcon = (id: string) => {
     switch (id) {
       case 'members':
-        return <Users className="w-4 h-4 text-accent-orange" />;
+        return <Users className="w-4 h-4 text-accent-cyan" />;
       case 'projects':
-        return <FolderGit2 className="w-4 h-4 text-accent-orange" />;
+        return <FolderGit2 className="w-4 h-4 text-accent-cyan" />;
       case 'farms':
-        return <Zap className="w-4 h-4 text-accent-orange" />;
+        return <Zap className="w-4 h-4 text-accent-cyan" />;
       case 'worldAge':
-        return <Clock className="w-4 h-4 text-accent-orange" />;
+        return <Clock className="w-4 h-4 text-accent-cyan" />;
       default:
-        return <Zap className="w-4 h-4 text-accent-orange" />;
+        return <Zap className="w-4 h-4 text-accent-cyan" />;
     }
   };
 
@@ -33,7 +33,7 @@ export const Statistics: React.FC = () => {
     <section className="relative py-20 bg-bg-main border-t border-white/[0.06]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-10 text-left">
-          <span className="text-xs font-mono uppercase tracking-wider text-accent-orange block mb-1.5">
+          <span className="text-xs font-mono uppercase tracking-wider text-accent-cyan block mb-1.5">
             {t.stats.tag}
           </span>
           <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text-primary tracking-tight">
@@ -54,18 +54,18 @@ export const Statistics: React.FC = () => {
             return (
               <div
                 key={stat.id}
-                className="glass-panel rounded-2xl p-6 text-left transition-colors hover:border-white/15"
+                className="glass-panel rounded-2xl p-6 text-left transition-colors hover:border-accent-cyan/30"
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm font-medium text-text-secondary">
                     {copy.label}
                   </span>
-                  <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-accent-cyan/[0.08] border border-accent-cyan/20 flex items-center justify-center">
                     {getIcon(stat.id)}
                   </div>
                 </div>
 
-                <div className="text-3xl sm:text-4xl font-heading font-bold text-text-primary tracking-tight">
+                <div className="text-3xl sm:text-4xl font-heading font-bold text-text-primary tracking-tight tabular-nums">
                   {displayValue}
                 </div>
               </div>
