@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   Archive,
   ArrowUpRight,
   Check,
-  Database,
-  ExternalLink,
   FolderGit2,
   Image as ImageIcon,
   KeyRound,
@@ -15,7 +13,6 @@ import {
   Plus,
   Settings,
   ShieldCheck,
-  Trash2,
   Users,
   Video,
 } from 'lucide-react';
@@ -23,14 +20,8 @@ import { useLanguage } from '../i18n/LanguageContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useSiteContent } from '../context/SiteContentContext';
 import {
-  clearRuntimeFirebaseConfig,
-  getActiveFirebaseConfig,
   getAllowedAdminEmails,
-  getRuntimeAdminEmails,
-  getRuntimeFirebaseConfig,
-  parseFirebaseConfigInput,
   saveRuntimeAdminEmails,
-  saveRuntimeFirebaseConfig,
 } from '../config/firebase';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -50,14 +41,12 @@ export const StaffPage: React.FC = () => {
   const {
     isAdmin,
     firebaseVerified,
-    firebaseConfigured,
     adminUser,
     authLoading,
     authError,
     signInWithGoogle,
     signOutAdmin,
     clearAuthError,
-    refreshFirebaseBinding,
     syncAllowedEmailsToFirestore,
   } = useAdminAuth();
 
@@ -75,8 +64,6 @@ export const StaffPage: React.FC = () => {
     saveSchematic,
   } = useSiteContent();
 
-  // Config / Setup state
-  const [configSnippet, setConfigSnippet] = useState('');
   const [emailsInput, setEmailsInput] = useState(() =>
     getAllowedAdminEmails().join(', ')
   );
@@ -84,43 +71,11 @@ export const StaffPage: React.FC = () => {
     type: 'ok' | 'err';
     text: string;
   } | null>(null);
-  const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
 
   // Quick Modals inside /staff dashboard
   const [openModal, setOpenModal] = useState<
     null | 'member' | 'project' | 'gallery' | 'video' | 'schematic'
   >(null);
-
-  const activeConfig = getActiveFirebaseConfig();
-  const hasRuntimeOverride = Boolean(getRuntimeFirebaseConfig());
-
-  const handleSaveFirebaseSetup = (e: React.FormEvent) => {
-    e.preventDefault();
-    setConfigFeedback(null);
-    try {
-      const parsed = parseFirebaseConfigInput(configSnippet);
-      saveRuntimeFirebaseConfig(parsed);
-      const emailParts = emailsInput
-        .split(/[,\n;]+/)
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean);
-      saveRuntimeAdminEmails(emailParts);
-      refreshFirebaseBinding();
-      clearAuthError();
-      setConfigSnippet('');
-      setConfigFeedback({
-        type: 'ok',
-        text: isIt
-          ? `Firebase collegato al progetto "${parsed.projectId}". Ora puoi accedere con Google!`
-          : `Firebase connected to project "${parsed.projectId}". You can sign in with Google now!`,
-      });
-    } catch (err) {
-      setConfigFeedback({
-        type: 'err',
-        text: err instanceof Error ? err.message : String(err),
-      });
-    }
-  };
 
   const handleSaveEmails = async () => {
     setConfigFeedback(null);
@@ -139,11 +94,11 @@ export const StaffPage: React.FC = () => {
         type: 'ok',
         text: firebaseVerified
           ? isIt
-            ? 'Lista email Owner salvata su questo dispositivo e sincronizzata con Firestore Rules.'
-            : 'Allowed emails saved locally and synced to Firestore Rules.'
+            ? 'Lista email Staff salvata e sincronizzata con Firestore Rules.'
+            : 'Allowed emails saved and synced to Firestore Rules.'
           : isIt
-            ? 'Lista email salvata in localStorage su questo dispositivo.'
-            : 'Allowed emails saved to localStorage.',
+            ? 'Lista email salvata in memoria.'
+            : 'Allowed emails saved locally.',
       });
     } catch (err) {
       setConfigFeedback({
@@ -223,9 +178,6 @@ export const StaffPage: React.FC = () => {
     },
   ];
 
-  const runtimeEmailCount = getRuntimeAdminEmails().length;
-  void runtimeEmailCount;
-
   return (
     <div className="min-h-screen pt-32 pb-24 bg-bg-main">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-left">
@@ -234,7 +186,7 @@ export const StaffPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <Badge variant="cyan">
               <KeyRound className="w-3.5 h-3.5" />
-              <span>{isIt ? 'Area Riservata Owner' : 'Restricted Staff Portal'}</span>
+              <span>{isIt ? 'Area Riservata Staff' : 'Staff Portal'}</span>
             </Badge>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-white/[0.04] border border-white/10 text-text-muted">
               #/staff
@@ -245,109 +197,102 @@ export const StaffPage: React.FC = () => {
           </h1>
           <p className="mt-3 text-sm sm:text-base text-text-secondary max-w-2xl leading-relaxed">
             {isIt
-              ? 'Pannello nascosto riservato esclusivamente all’account Google Owner di Fermium SMP. Nessun utente normale vede questa pagina né controlli di modifica.'
-              : 'Hidden portal restricted to the Fermium SMP Owner Google account. Regular visitors never see admin buttons or registration prompts.'}
+              ? 'Pannello di controllo riservato allo Staff di Fermium SMP.'
+              : 'Restricted dashboard for Fermium SMP Staff.'}
           </p>
         </div>
 
-        {/* Auth Error Banner */}
-        {authError && (
-          <div
-            role="alert"
-            className="mb-6 p-4 rounded-2xl bg-red-500/15 border border-red-400/35 text-xs sm:text-sm text-red-200 flex items-start gap-3"
-          >
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <div className="flex-1 leading-relaxed">{authError}</div>
-            <button
-              type="button"
-              onClick={clearAuthError}
-              className="text-xs font-mono text-red-300 hover:text-white underline cursor-pointer"
-            >
-              OK
-            </button>
-          </div>
-        )}
-
-        {/* Config Feedback Banner */}
+        {/* Global Feedback Banner */}
         {configFeedback && (
           <div
-            role="status"
-            className={`mb-6 p-4 rounded-2xl border text-xs sm:text-sm flex items-start gap-3 ${
+            className={`mb-6 rounded-2xl p-4 flex items-start gap-3 border ${
               configFeedback.type === 'ok'
-                ? 'bg-emerald-500/15 border-emerald-400/35 text-emerald-200'
-                : 'bg-red-500/15 border-red-400/35 text-red-200'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
             }`}
           >
             {configFeedback.type === 'ok' ? (
               <Check className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
             )}
-            <span className="leading-relaxed">{configFeedback.text}</span>
+            <div className="text-xs sm:text-sm font-mono leading-relaxed">
+              {configFeedback.text}
+            </div>
           </div>
         )}
 
-        {/* ================================================================= */}
-        {/* STATE 3: LOGGED IN DASHBOARD (isAdmin === true)                   */}
-        {/* ================================================================= */}
+        {/* Auth Error Banner */}
+        {authError && (
+          <div className="mb-6 rounded-2xl p-4 flex items-start justify-between gap-3 bg-rose-500/10 border border-rose-500/30 text-rose-300">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+              <div className="text-xs sm:text-sm font-mono leading-relaxed">
+                {authError}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={clearAuthError}
+              className="text-xs font-mono text-rose-200/80 hover:text-white cursor-pointer"
+            >
+              Chiudi
+            </button>
+          </div>
+        )}
+
         {isAdmin ? (
-          <div className="space-y-8">
-            {/* Session Status Strip */}
-            <div className="glass-panel border-gradient-cyan rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5 min-w-0">
+          /* ================================================================= */
+          /* STATE: LOGGED IN AS STAFF -> FULL DASHBOARD                       */
+          /* ================================================================= */
+          <div className="space-y-10">
+            {/* Top User Bar */}
+            <div className="glass-panel border-gradient-cyan rounded-3xl p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div className="flex items-center gap-4">
                 {adminUser?.photoURL ? (
                   <img
                     src={adminUser.photoURL}
                     alt={adminUser.displayName}
+                    className="w-12 h-12 rounded-2xl object-cover border border-white/20"
                     referrerPolicy="no-referrer"
-                    className="w-12 h-12 rounded-2xl object-cover border border-accent-cyan/40 shrink-0"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-2xl bg-accent-cyan/15 border border-accent-cyan/35 flex items-center justify-center text-accent-cyan shrink-0">
+                  <div className="w-12 h-12 rounded-2xl bg-accent-cyan/15 border border-accent-cyan/35 flex items-center justify-center text-accent-cyan">
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                 )}
-
-                <div className="min-w-0">
+                <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-base font-heading font-bold text-text-primary truncate">
-                      {adminUser?.displayName || 'Fermium Owner'}
+                    <span className="font-heading font-bold text-lg text-text-primary">
+                      {adminUser?.displayName || 'Fermium Staff'}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-accent-cyan/15 border border-accent-cyan/35 text-accent-cyan">
-                      localStorage · 0ms
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30">
+                      localStorage • 0ms
                     </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${
-                        firebaseVerified
-                          ? 'bg-emerald-500/15 border-emerald-400/35 text-emerald-300'
-                          : 'bg-amber-500/15 border-amber-400/35 text-amber-300'
-                      }`}
-                    >
-                      {firebaseVerified
-                        ? 'Firebase Auth Verificata'
-                        : isIt
-                          ? 'Verifica Firebase in corso / richiesta per salvare'
-                          : 'Firebase session required to write'}
-                    </span>
+                    {firestoreConnected ? (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        Firestore Realtime Live
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        Verifica Firebase in corso
+                      </span>
+                    )}
                   </div>
-                  <div className="text-xs font-mono text-text-secondary truncate mt-0.5">
+                  <span className="text-xs font-mono text-text-secondary mt-0.5 block">
                     {adminUser?.email}
-                    {activeConfig ? ` · Project: ${activeConfig.projectId}` : ''}
-                    {firestoreConnected ? ' · Firestore Sync Live' : ''}
-                  </div>
+                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 shrink-0">
-                <Link to="/">
-                  <Button variant="secondary" size="sm">
-                    {isIt ? 'Vai al Sito' : 'View Site'}
-                  </Button>
-                </Link>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
+                  {isIt ? 'Vai al Sito' : 'Back to Site'}
+                </Button>
                 <button
                   type="button"
                   onClick={() => signOutAdmin()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-400/35 text-xs font-mono font-semibold text-red-200 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-xs font-mono font-medium text-red-300 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>{isIt ? 'Esci' : 'Sign Out'}</span>
@@ -355,8 +300,8 @@ export const StaffPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 5 Quick Content Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Dashboard 5 Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {dashboardCards.map((card) => {
                 const Icon = card.icon;
                 return (
@@ -403,223 +348,74 @@ export const StaffPage: React.FC = () => {
                 );
               })}
             </div>
+
+            {/* Gestione Account Staff & Collaboratori */}
+            <div className="glass-panel rounded-2xl p-6">
+              <div className="flex items-center gap-2.5 mb-2">
+                <Settings className="w-4 h-4 text-accent-cyan" />
+                <h3 className="font-heading font-bold text-base text-text-primary">
+                  {isIt ? 'Gestione Account Staff & Collaboratori' : 'Staff Accounts Management'}
+                </h3>
+              </div>
+              <p className="text-xs text-text-secondary mb-4 leading-relaxed">
+                {isIt
+                  ? 'Aggiungi o rimuovi le email Google autorizzate ad accedere al pannello Staff. Separa gli indirizzi con una virgola.'
+                  : 'Add or remove Google emails authorized to manage the site as Staff. Separate addresses with commas.'}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <input
+                  id="cms-allowed-emails"
+                  type="text"
+                  value={emailsInput}
+                  onChange={(e) => setEmailsInput(e.target.value)}
+                  placeholder="manuelcarpita@gmail.com, altro.account@gmail.com"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-[#0B0F14] border border-white/10 focus:border-accent-cyan/70 focus:outline-none text-base sm:text-sm font-mono text-text-primary"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveEmails}
+                  className="px-5 py-2.5 rounded-xl bg-accent-cyan hover:bg-accent-cyan-hover text-[#061018] font-heading font-semibold text-xs cursor-pointer shadow-glow-cyan transition-colors shrink-0"
+                >
+                  {isIt ? 'Salva Email' : 'Save Emails'}
+                </button>
+              </div>
+            </div>
           </div>
-        ) : firebaseConfigured ? (
+        ) : (
           /* ================================================================= */
-          /* STATE 2: FIREBASE CONFIGURED & LOGGED OUT                         */
+          /* LOGGED OUT: PULSANTE ACCEDI CON GOOGLE PULITO                      */
           /* ================================================================= */
-          <div className="glass-panel border-gradient-cyan rounded-3xl p-7 sm:p-10 max-w-xl">
-            <div className="w-12 h-12 rounded-2xl bg-accent-cyan/15 border border-accent-cyan/35 flex items-center justify-center text-accent-cyan mb-5">
-              <ShieldCheck className="w-6 h-6" />
+          <div className="glass-panel border-gradient-cyan rounded-3xl p-8 sm:p-12 max-w-md mx-auto text-center my-8">
+            <div className="w-16 h-16 rounded-2xl bg-accent-cyan/15 border border-accent-cyan/35 flex items-center justify-center text-accent-cyan mb-6 mx-auto shadow-glow-cyan">
+              <ShieldCheck className="w-8 h-8" />
             </div>
 
-            <h2 className="text-2xl font-heading font-bold text-text-primary mb-2">
-              {isIt ? 'Accesso Owner Fermium SMP' : 'Fermium SMP Owner Sign-In'}
+            <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text-primary mb-3">
+              {isIt ? 'Accesso Staff Fermium' : 'Fermium Staff Sign-In'}
             </h2>
-            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed mb-6">
+            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed mb-8">
               {isIt
-                ? 'Accedi una sola volta con l’account Google autorizzato di Fermium. Questo dispositivo manterrà in memoria lo sblocco rapido in localStorage per tutte le pagine senza tempi di attesa.'
-                : 'Sign in once with the authorized Fermium Google account. Your browser keeps instant localStorage admin state across routes.'}
+                ? 'Accedi con il tuo account Google autorizzato per sbloccare la gestione del sito.'
+                : 'Sign in with your authorized Google account to manage the site.'}
             </p>
 
             <button
               type="button"
               onClick={() => signInWithGoogle()}
               disabled={authLoading}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl bg-accent-cyan hover:bg-accent-cyan-hover text-[#061018] font-heading font-semibold text-sm transition-all cursor-pointer disabled:opacity-50 shadow-glow-cyan active:scale-[0.97]"
+              className="w-full inline-flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-accent-cyan hover:bg-accent-cyan-hover text-[#061018] font-heading font-bold text-sm sm:text-base transition-all cursor-pointer disabled:opacity-50 shadow-glow-cyan active:scale-[0.97]"
             >
               {authLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <KeyRound className="w-4 h-4" />
+                <KeyRound className="w-5 h-5" />
               )}
               <span>
-                {isIt
-                  ? 'Accedi con Google (Account Fermium)'
-                  : 'Sign in with Google (Fermium Account)'}
+                {isIt ? 'Accedi con Google' : 'Sign in with Google'}
               </span>
             </button>
-
-            <div className="mt-6 pt-5 border-t border-white/10 text-xs font-mono text-text-muted space-y-1">
-              <div>
-                {isIt ? 'Progetto collegato:' : 'Project ID:'}{' '}
-                <span className="text-text-secondary">{activeConfig?.projectId}</span>
-              </div>
-              <div>
-                {isIt
-                  ? 'Accesso consentito esclusivamente agli account Google Owner autorizzati.'
-                  : 'Access restricted strictly to authorized Owner Google accounts.'}
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* ================================================================= */
-          /* STATE 1: FIREBASE NOT CONFIGURED YET                              */
-          /* ================================================================= */
-          <div className="glass-panel border-gradient-cyan rounded-3xl p-6 sm:p-9 space-y-6">
-            <div className="flex items-start gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-accent-cyan/15 border border-accent-cyan/35 flex items-center justify-center text-accent-cyan shrink-0">
-                <Database className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-heading font-bold text-text-primary mb-1">
-                  {isIt
-                    ? 'Collega il Progetto Firebase (Piano Spark Gratuito)'
-                    : 'Connect Firebase Project (Free Spark Plan)'}
-                </h2>
-                <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
-                  {isIt
-                    ? 'Non ho trovato credenziali Firebase loggate su questo PC, ma tutto il CMS, le Firestore Rules e gli upload WebP/.litematic sono già pronti. Ti basta collegare le chiavi pubbliche della tua Web App Firebase qui sotto:'
-                    : 'No logged-in Firebase CLI session was present on this machine, so paste your public Firebase Web App config below to enable live Google Sign-In & Firestore writes:'}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-text-secondary">
-              <div className="p-3.5 rounded-xl bg-[#0B0F14] border border-white/10">
-                <div className="font-mono text-accent-cyan font-semibold mb-1">1. Authentication</div>
-                <p>
-                  Attiva <strong>Google Sign-In</strong> e aggiungi{' '}
-                  <code className="text-text-primary">manolo006.github.io</code> e{' '}
-                  <code className="text-text-primary">localhost</code> in Authorized Domains.
-                </p>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#0B0F14] border border-white/10">
-                <div className="font-mono text-accent-cyan font-semibold mb-1">2. Cloud Firestore</div>
-                <p>
-                  Crea database <strong>Firestore Database</strong> gratuito (Spark, no carta) e incolla le regole dal file{' '}
-                  <code className="text-text-primary">firestore.rules</code> della repo.
-                </p>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#0B0F14] border border-white/10">
-                <div className="font-mono text-accent-cyan font-semibold mb-1">3. Web App Snippet</div>
-                <p>
-                  In Impostazioni Progetto → Aggiungi App Web (`&lt;/&gt;`), copia{' '}
-                  <code className="text-text-primary">firebaseConfig</code> e incollalo qui sotto.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="https://console.firebase.google.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-mono text-accent-cyan transition-colors"
-              >
-                <span>Apri Firebase Console</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
           </div>
         )}
-
-        {/* ================================================================= */}
-        {/* COLLAPSIBLE RUNTIME CONFIG / ADMIN EMAILS EDITOR                  */}
-        {/* ================================================================= */}
-        <div className="mt-8 glass-panel rounded-2xl p-5">
-          <button
-            type="button"
-            onClick={() => setShowAdvancedConfig((s) => !s)}
-            className="w-full flex items-center justify-between text-xs font-mono text-text-secondary hover:text-text-primary cursor-pointer"
-          >
-            <span className="inline-flex items-center gap-2">
-              <Settings className="w-4 h-4 text-accent-cyan" />
-              <span>
-                {isIt
-                  ? 'Configurazione Firebase & Email Google Autorizzate'
-                  : 'Firebase Runtime Config & Allowed Owner Emails'}
-              </span>
-            </span>
-            <span className="text-accent-cyan">
-              {showAdvancedConfig ? (isIt ? 'Chiudi' : 'Close') : isIt ? 'Espandi' : 'Expand'}
-            </span>
-          </button>
-
-        {(showAdvancedConfig || !firebaseConfigured) && (
-          <div className="mt-5 pt-5 border-t border-white/10 space-y-6">
-              {/* Email allowlist manager (solo Owner autenticato) */}
-              {isAdmin && (
-                <div className="space-y-2">
-                  <label
-                    htmlFor="cms-allowed-emails"
-                    className="block text-xs font-mono uppercase tracking-wider text-text-secondary"
-                  >
-                    {isIt
-                      ? 'Email Google Owner Autorizzate (separate da virgola)'
-                      : 'Authorized Owner Google Emails (comma-separated)'}
-                  </label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      id="cms-allowed-emails"
-                      type="text"
-                      value={emailsInput}
-                      onChange={(e) => setEmailsInput(e.target.value)}
-                      placeholder="owner@example.com, co-owner@example.com"
-                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#0B0F14] border border-white/10 focus:border-accent-cyan/70 focus:outline-none text-base sm:text-sm font-mono text-text-primary"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSaveEmails}
-                      className="px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-accent-cyan/20 border border-white/15 hover:border-accent-cyan/40 text-xs font-mono font-semibold text-accent-cyan transition-colors cursor-pointer shrink-0"
-                    >
-                      {isIt ? 'Salva Email' : 'Save Emails'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Paste Firebase Snippet */}
-              <form onSubmit={handleSaveFirebaseSetup} className="space-y-3">
-                <label
-                  htmlFor="cms-firebase-snippet"
-                  className="block text-xs font-mono uppercase tracking-wider text-text-secondary"
-                >
-                  {isIt
-                    ? 'Incolla Configurazione Firebase (JSON o const firebaseConfig = { ... })'
-                    : 'Paste Firebase Config (JSON or const firebaseConfig = { ... })'}
-                </label>
-                <textarea
-                  id="cms-firebase-snippet"
-                  rows={5}
-                  value={configSnippet}
-                  onChange={(e) => setConfigSnippet(e.target.value)}
-                  placeholder={`{\n  "apiKey": "AIza...",\n  "authDomain": "fermium-smp.firebaseapp.com",\n  "projectId": "fermium-smp",\n  "appId": "1:123456:web:abcdef"\n}`}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0B0F14] border border-white/10 focus:border-accent-cyan/70 focus:outline-none text-xs font-mono text-text-primary"
-                />
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  {hasRuntimeOverride && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        clearRuntimeFirebaseConfig();
-                        refreshFirebaseBinding();
-                        setConfigFeedback({
-                          type: 'ok',
-                          text: isIt
-                            ? 'Configurazione runtime rimossa.'
-                            : 'Runtime Firebase config cleared.',
-                        });
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-xs font-mono text-red-300 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>{isIt ? 'Rimuovi Config Salvata' : 'Clear Saved Config'}</span>
-                    </button>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="ml-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-cyan hover:bg-accent-cyan-hover text-[#061018] text-xs font-heading font-semibold cursor-pointer shadow-glow-cyan"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>{isIt ? 'Salva & Collega Firebase' : 'Save & Connect Firebase'}</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Quick-action Modals inside Dashboard */}
