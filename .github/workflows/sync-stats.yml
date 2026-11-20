@@ -1,0 +1,68 @@
+name: Sync Player Stats (GameHosting SFTP)
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 'sync-stats'
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check SFTP secrets
+        id: check_secrets
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASS: ${{ secrets.SFTP_PASS }}
+        run: |
+          if [ -z "$SFTP_HOST" ] || [ -z "$SFTP_USER" ] || [ -z "$SFTP_PASS" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SFTP secrets not configured yet (SFTP_HOST, SFTP_USER, SFTP_PASS). Skipping sync."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node
+        if: steps.check_secrets.outputs.configured == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install SFTP client
+        if: steps.check_secrets.outputs.configured == 'true'
+        run: npm install --no-save ssh2-sftp-client
+
+      - name: Sync world/stats via SFTP
+        if: steps.check_secrets.outputs.configured == 'true'
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT || '2022' }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASS: ${{ secrets.SFTP_PASS }}
+          SFTP_WORLD_DIR: ${{ secrets.SFTP_WORLD_DIR }}
+        run: node scripts/sync-stats-sftp.mjs
+
+      - name: Commit updated stats.json if changed
+        if: steps.check_secrets.outputs.configured == 'true'
+        run: |
+          if git diff --quiet stats.json public/stats.json docs/stats.json; then
+            echo "No stats changes detected."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stats.json public/stats.json
+          if [ -f docs/stats.json ]; then git add docs/stats.json; fi
+          git commit -m "chore(stats): sync player statistics from GameHosting [skip ci]"
+          git push

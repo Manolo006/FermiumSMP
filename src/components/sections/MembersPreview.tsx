@@ -8,12 +8,17 @@ import {
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useSiteContent } from '../../context/SiteContentContext';
+import { LIVE_STATS_JSON_URL } from '../../config/links';
 import { Badge } from '../ui/Badge';
 import { MemberCard, type MemberCardOriginRects } from '../ui/MemberCard';
 import { MemberStatsModal } from '../ui/MemberStatsModal';
 import { MemberFormModal } from '../admin/AdminModals';
 
 type MemberRoleFilter = 'all' | MemberRoleGroup;
+
+function normalizeUuid(uuid?: string): string {
+  return uuid ? uuid.replace(/-/g, '').trim().toLowerCase() : '';
+}
 
 export const MembersPreview: React.FC = () => {
   const { t, lang } = useLanguage();
@@ -34,19 +39,31 @@ export const MembersPreview: React.FC = () => {
     let cancelled = false;
     const bust = Date.now();
 
-    fetch(`./stats.json?t=${bust}`, { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled || !Array.isArray(data)) return;
-        const valid = data.filter(
-          (item): item is MemberStats => item && typeof item.name === 'string'
-        );
-        if (valid.length > 0) {
-          setStatsList(valid);
+    async function loadLiveStats() {
+      const candidates = [
+        `${LIVE_STATS_JSON_URL}?t=${bust}`,
+        `./stats.json?t=${bust}`,
+      ];
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url, { cache: 'no-store' });
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (cancelled || !Array.isArray(data)) return;
+          const valid = data.filter(
+            (item): item is MemberStats => item && typeof item.name === 'string'
+          );
+          if (valid.length > 0) {
+            setStatsList(valid);
+            return;
+          }
+        } catch {
+          // fallback al sorgente successivo
         }
-      })
-      .catch(() => {});
+      }
+    }
 
+    loadLiveStats();
     return () => {
       cancelled = true;
     };
@@ -65,19 +82,27 @@ export const MembersPreview: React.FC = () => {
     }
   };
 
-  const statsMap = useMemo(() => {
-    const map = new Map<string, MemberStats>();
+  const { statsByUuid, statsByName } = useMemo(() => {
+    const byUuid = new Map<string, MemberStats>();
+    const byName = new Map<string, MemberStats>();
     for (const s of statsList) {
-      map.set(s.name.toLowerCase(), s);
+      const uuid = normalizeUuid(s.uuid);
+      if (uuid.length === 32) byUuid.set(uuid, s);
+      byName.set(s.name.toLowerCase(), s);
     }
-    return map;
+    return { statsByUuid: byUuid, statsByName: byName };
   }, [statsList]);
 
   const memberMetrics = useMemo(() => {
-    return members.map(
-      (m) => statsMap.get(m.name.toLowerCase()) ?? buildFallbackStatsForName(m.name)
-    );
-  }, [members, statsMap]);
+    return members.map((m) => {
+      const uuid = normalizeUuid(m.uuid);
+      return (
+        (uuid ? statsByUuid.get(uuid) : undefined) ??
+        statsByName.get(m.name.toLowerCase()) ??
+        buildFallbackStatsForName(m.name)
+      );
+    });
+  }, [members, statsByUuid, statsByName]);
 
   const { maxCarpetScore, maxBlocksMined, rankByName } = useMemo(() => {
     let maxCarpet = 1;

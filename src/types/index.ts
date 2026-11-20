@@ -16,6 +16,7 @@ export interface MemberStatTopBlock {
 
 export interface MemberStats {
   name: string;
+  uuid?: string;
   playTimeHours: number;
   blocksMined: number;
   blocksPlaced: number;
