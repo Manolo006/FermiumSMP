@@ -85,3 +85,36 @@ export interface StatisticSlot {
   value: string;
   isPlaceholder: boolean;
 }
+
+export interface ServerOnlinePlayer {
+  name: string;
+  uuid?: string;
+  isBot?: boolean;
+}
+
+export interface ServerStatusSample {
+  ts: number;
+  tps: number;
+  mspt: number;
+  players: number;
+  bots?: number;
+}
+
+export interface LiveServerStatus {
+  online: boolean;
+  tps: number;
+  mspt: number;
+  msptMin?: number;
+  msptMax?: number;
+  playersOnline: number;
+  botsOnline?: number;
+  maxPlayers: number;
+  players?: ServerOnlinePlayer[];
+  version?: string;
+  motd?: string;
+  uptimeSeconds?: number;
+  memoryUsedMb?: number;
+  memoryMaxMb?: number;
+  history?: ServerStatusSample[];
+  updatedAtMs: number;
+}

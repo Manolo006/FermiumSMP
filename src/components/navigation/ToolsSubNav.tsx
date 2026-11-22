@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Archive, Database, Grid3X3, Map, Sparkles } from 'lucide-react';
+import { Activity, Archive, Database, Grid3X3, Map, Sparkles } from 'lucide-react';
 import { useLanguage } from '../../i18n/LanguageContext';
 
 export const ToolsSubNav: React.FC = () => {
@@ -15,6 +15,12 @@ export const ToolsSubNav: React.FC = () => {
       label: t.nav.worldMap,
       icon: Map,
       active: pathname === '/world',
+    },
+    {
+      to: '/tools/status',
+      label: t.nav.status,
+      icon: Activity,
+      active: pathname === '/tools/status',
     },
     {
       to: '/tools/enchanting',
@@ -61,7 +67,7 @@ export const ToolsSubNav: React.FC = () => {
         aria-label={t.nav.tools}
         className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto no-scrollbar"
       >
-        <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#11161F]/85 border border-white/10 backdrop-blur-md min-w-max">
+        <div className="inline-flex items-center gap-1 p-1.5 rounded-2xl bg-[#11161F]/85 border border-white/10 backdrop-blur-md min-w-max">
           {items.map((item) => {
             const Icon = item.icon;
             return (
@@ -70,7 +76,7 @@ export const ToolsSubNav: React.FC = () => {
                 ref={item.active ? activeLinkRef : undefined}
                 to={item.to}
                 aria-current={item.active ? 'page' : undefined}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono transition-[background-color,color,border-color,box-shadow,transform] duration-150 ease-out-Quart active:scale-[0.97] whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/80 ${
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono transition-[background-color,color,border-color,box-shadow,transform] duration-150 ease-out-Quart active:scale-[0.97] whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/80 ${
                   item.active
                     ? 'bg-accent-cyan text-[#061018] font-semibold shadow-glow-cyan'
                     : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.05]'

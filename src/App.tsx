@@ -10,6 +10,7 @@ import { ArchivePage } from './pages/ArchivePage';
 import { WorldMapPage } from './pages/WorldMapPage';
 import { ChunkLoaderPage } from './pages/ChunkLoaderPage';
 import { EnchantingPage } from './pages/EnchantingPage';
+import { ServerStatusPage } from './pages/ServerStatusPage';
 import { StaffPage } from './pages/StaffPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 
@@ -35,7 +36,7 @@ export const App: React.FC = () => {
                 <Route path="/tools/chunk-loader" element={<ChunkLoaderPage />} />
                 <Route path="/tools/enchanting" element={<EnchantingPage />} />
                 <Route path="/tools/archive" element={<ArchivePage />} />
-                <Route path="/tools/status" element={<PlaceholderPage title="Server Status" />} />
+                <Route path="/tools/status" element={<ServerStatusPage />} />
                 <Route path="/staff" element={<StaffPage />} />
                 <Route path="*" element={<Home />} />
               </Routes>

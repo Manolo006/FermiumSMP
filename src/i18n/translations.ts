@@ -143,6 +143,11 @@ export const translations = {
           badge: '.litematic',
           desc: 'Scarica file .litematic del server con anteprima isometrica 3D interattiva, rotazione e lista blocchi.',
         },
+        status: {
+          title: 'Stato Server',
+          badge: 'TPS & MSPT',
+          desc: 'Monitora in tempo reale se il server è Online o Chiuso, con TPS, MSPT, utilizzo RAM e player attivi.',
+        },
       },
     },
     common: {
@@ -369,6 +374,11 @@ export const translations = {
           title: 'Schematics Archive',
           badge: '.litematic',
           desc: 'Download server .litematic files with interactive 3D isometric previews, layer slicing, and full block material lists.',
+        },
+        status: {
+          title: 'Live Server Status',
+          badge: 'TPS & MSPT',
+          desc: 'Monitor real-time server availability, TPS, MSPT tick budget, RAM usage, and active players.',
         },
       },
     },

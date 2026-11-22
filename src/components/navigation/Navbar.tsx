@@ -460,19 +460,16 @@ export const Navbar: React.FC = () => {
                     <Link
                       to="/tools/status"
                       onClick={() => setToolsOpen(false)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.06] transition-colors"
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/[0.06] transition-colors group ${
+                        location.pathname === '/tools/status' ? 'bg-accent-cyan/[0.08]' : ''
+                      }`}
                     >
-                      <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center text-text-secondary shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-accent-cyan/10 border border-accent-cyan/25 flex items-center justify-center text-accent-cyan shrink-0">
                         <Activity className="w-4 h-4" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-heading font-medium text-text-primary">
-                            {t.nav.status}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-white/[0.06] text-text-muted">
-                            {t.nav.soon}
-                          </span>
+                      <div className="min-w-0">
+                        <div className="text-sm font-heading font-medium text-text-primary group-hover:text-accent-cyan transition-colors">
+                          {t.nav.status}
                         </div>
                         <div className="text-xs text-text-secondary truncate">{t.nav.statusSub}</div>
                       </div>
@@ -659,6 +656,14 @@ export const Navbar: React.FC = () => {
               >
                 <Archive className="w-4 h-4 text-accent-cyan" />
                 <span>{t.nav.archive}</span>
+              </Link>
+              <Link
+                to="/tools/status"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-text-secondary hover:text-accent-cyan hover:bg-white/[0.05]"
+              >
+                <Activity className="w-4 h-4 text-accent-cyan" />
+                <span>{t.nav.status}</span>
               </Link>
             </div>
 

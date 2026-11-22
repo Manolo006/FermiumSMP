@@ -105,6 +105,27 @@ rules_version = '2';
 //   - emails: list<string> (required, max 20 lowercase valid email addresses <= 120 chars each)
 //   - createdAt, updatedAt, createdBy, updatedBy (optional audit fields)
 //
+// Collection: server_status
+// Document ID: 'live' (strictly enforced single live telemetry document)
+// Fields (publicly readable, no PII):
+//   - online: bool (required)
+//   - tps: number (required, 0..25)
+//   - mspt: number (required, 0..5000)
+//   - msptMin: number (optional, 0..5000)
+//   - msptMax: number (optional, 0..5000)
+//   - playersOnline: int (required, 0..500)
+//   - botsOnline: int (optional, 0..500)
+//   - maxPlayers: int (required, 0..500)
+//   - players: list<map> (optional, max 60 items; inspected entries: {name: 1..40 string, uuid?: <=36 string, isBot?: bool})
+//   - version: string (optional, 0..80 chars)
+//   - motd: string (optional, 0..200 chars)
+//   - uptimeSeconds: int (optional, 0..315360000)
+//   - memoryUsedMb: number (optional, 0..1048576)
+//   - memoryMaxMb: number (optional, 0..1048576)
+//   - history: list<map> (optional, max 60 items; inspected entries: {ts: >0 number, tps: 0..25 number, mspt: 0..5000 number, players: 0..500 int, bots?: 0..500 int})
+//   - updatedAtMs: number (required, > 0)
+//   - updatedAt: timestamp (optional)
+//
 // ===============================================================
 
 service cloud.firestore {
@@ -140,6 +161,18 @@ service cloud.firestore {
           get(/databases/$(database)/documents/cms_meta/admins).data.emails is list &&
           request.auth.token.email.lower() in get(/databases/$(database)/documents/cms_meta/admins).data.emails
         )
+      );
+    }
+
+    // Dedicated telemetry reporter: verified Fermium admins OR the server status bot account.
+    // email_verified is intentionally optional only for status-bot@fermiumsmp.local (.local console account).
+    // NEVER grant status-bot admin/write privileges on cms_* or cms_meta/admins.
+    function isStatusReporter() {
+      return isFermiumAdmin() || (
+        isAuthenticated() &&
+        ('email' in request.auth.token) &&
+        request.auth.token.email is string &&
+        request.auth.token.email.lower() == 'status-bot@fermiumsmp.local'
       );
     }
 
@@ -289,6 +322,44 @@ service cloud.firestore {
         (emails.size() < 18 || isValidLowercaseEmail(emails[17])) &&
         (emails.size() < 19 || isValidLowercaseEmail(emails[18])) &&
         (emails.size() < 20 || isValidLowercaseEmail(emails[19]));
+    }
+
+    function isValidPlayerEntry(p) {
+      return p is map &&
+        p.keys().hasOnly(['name', 'uuid', 'isBot']) &&
+        ('name' in p) &&
+        p.name is string &&
+        p.name.size() >= 1 &&
+        p.name.size() <= 40 &&
+        (!('uuid' in p) || (p.uuid is string && p.uuid.size() <= 36)) &&
+        (!('isBot' in p) || p.isBot is bool);
+    }
+
+    function isValidPlayerList(players) {
+      return players is list &&
+        players.size() <= 60 &&
+        (players.size() < 1 || isValidPlayerEntry(players[0])) &&
+        (players.size() < 2 || isValidPlayerEntry(players[1])) &&
+        (players.size() <= 2 || isValidPlayerEntry(players[players.size() - 1]));
+    }
+
+    function isValidHistorySample(s) {
+      return s is map &&
+        s.keys().hasOnly(['ts', 'tps', 'mspt', 'players', 'bots']) &&
+        s.keys().hasAll(['ts', 'tps', 'mspt', 'players']) &&
+        s.ts is number && s.ts > 0 &&
+        s.tps is number && s.tps >= 0 && s.tps <= 25 &&
+        s.mspt is number && s.mspt >= 0 && s.mspt <= 5000 &&
+        s.players is int && s.players >= 0 && s.players <= 500 &&
+        (!('bots' in s) || (s.bots is int && s.bots >= 0 && s.bots <= 500));
+    }
+
+    function isValidHistoryList(history) {
+      return history is list &&
+        history.size() <= 60 &&
+        (history.size() < 1 || isValidHistorySample(history[0])) &&
+        (history.size() < 2 || isValidHistorySample(history[1])) &&
+        (history.size() <= 2 || isValidHistorySample(history[history.size() - 1]));
     }
 
     function isValidActorIdentifier(val) {
@@ -471,6 +542,37 @@ service cloud.firestore {
         isValidAdminEmailsList(data.emails);
     }
 
+    function isValidServerStatus(data) {
+      let allowed = [
+        'online', 'tps', 'mspt', 'msptMin', 'msptMax',
+        'playersOnline', 'botsOnline', 'maxPlayers', 'players',
+        'version', 'motd', 'uptimeSeconds', 'memoryUsedMb', 'memoryMaxMb',
+        'history', 'updatedAtMs', 'updatedAt'
+      ];
+      let required = [
+        'online', 'tps', 'mspt', 'playersOnline', 'maxPlayers', 'updatedAtMs'
+      ];
+      return hasOnlyAllowedFields(data, allowed) &&
+        hasRequiredFields(data, required) &&
+        data.online is bool &&
+        data.tps is number && data.tps >= 0 && data.tps <= 25 &&
+        data.mspt is number && data.mspt >= 0 && data.mspt <= 5000 &&
+        isValidOptionalNumber(data, 'msptMin', 0, 5000) &&
+        isValidOptionalNumber(data, 'msptMax', 0, 5000) &&
+        data.playersOnline is int && data.playersOnline >= 0 && data.playersOnline <= 500 &&
+        isValidOptionalInt(data, 'botsOnline', 0, 500) &&
+        data.maxPlayers is int && data.maxPlayers >= 0 && data.maxPlayers <= 500 &&
+        (!('players' in data) || isValidPlayerList(data.players)) &&
+        isValidOptionalString(data, 'version', 0, 80) &&
+        isValidOptionalString(data, 'motd', 0, 200) &&
+        isValidOptionalInt(data, 'uptimeSeconds', 0, 315360000) &&
+        isValidOptionalNumber(data, 'memoryUsedMb', 0, 1048576) &&
+        isValidOptionalNumber(data, 'memoryMaxMb', 0, 1048576) &&
+        (!('history' in data) || isValidHistoryList(data.history)) &&
+        data.updatedAtMs is number && data.updatedAtMs > 0 &&
+        isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -540,6 +642,12 @@ service cloud.firestore {
         isValidAdminsMeta(request.resource.data) &&
         isValidAuditFieldsOnUpdate(request.resource.data);
       allow delete: if isBootstrapOwner();
+    }
+
+    match /server_status/live {
+      allow read: if true;
+      allow create, update: if isStatusReporter() && isValidServerStatus(request.resource.data);
+      allow delete: if isFermiumAdmin();
     }
 
     // Default deny for all other paths and subcollections

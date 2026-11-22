@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
+  Activity,
   Archive,
   ArrowUpRight,
   Database,
@@ -24,10 +25,17 @@ export const ToolsShowcase: React.FC = () => {
       data: copy.items.worldMap,
     },
     {
+      key: 'status',
+      to: '/tools/status',
+      icon: Activity,
+      featured: true,
+      data: copy.items.status,
+    },
+    {
       key: 'enchanting',
       to: '/tools/enchanting',
       icon: Sparkles,
-      featured: true,
+      featured: false,
       data: copy.items.enchanting,
     },
     {
@@ -73,8 +81,8 @@ export const ToolsShowcase: React.FC = () => {
           </p>
         </div>
 
-        {/* 6-Column Asymmetric Bento Grid: 2 Featured (3 cols each) + 3 Standard (2 cols each) */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-5">
+        {/* Balanced 6-Card Suite Grid (2 Featured Cyan Highlighted + 4 Standard) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {tools.map((tool) => {
             const Icon = tool.icon;
             return (
@@ -83,8 +91,8 @@ export const ToolsShowcase: React.FC = () => {
                 to={tool.to}
                 className={`group glass-panel hover-lift rounded-2xl p-6 text-left flex flex-col justify-between relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/80 ${
                   tool.featured
-                    ? 'md:col-span-3 border-gradient-cyan'
-                    : 'md:col-span-2 hover:border-accent-cyan/35'
+                    ? 'border-gradient-cyan'
+                    : 'hover:border-accent-cyan/35'
                 }`}
               >
                 {/* Quiet corner cyan bloom on hover */}
