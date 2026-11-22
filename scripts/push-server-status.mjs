@@ -98,7 +98,7 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
     playersOnline: Number(process.env.SERVER_PLAYERS ?? 0),
     botsOnline: Number(process.env.SERVER_BOTS ?? 0),
     maxPlayers: Number(process.env.SERVER_MAX_PLAYERS ?? 20),
-    version: process.env.SERVER_VERSION || 'Fabric 1.21.4',
+    version: process.env.SERVER_VERSION || 'Fabric 26.2',
     updatedAtMs: Date.now(),
   };
   pushServerStatus(sample)

@@ -249,7 +249,7 @@ export const ServerStatusPage: React.FC = () => {
           { name: 'jenktland3', isBot: false },
           { name: 'bot_raid', isBot: true },
         ],
-        version: 'Fabric 1.21.4',
+        version: 'Fabric 26.2',
         motd: 'Fermium Technical SMP',
         uptimeSeconds: 18_420,
         memoryUsedMb: 3420,
@@ -282,7 +282,7 @@ export const ServerStatusPage: React.FC = () => {
         botsOnline: 0,
         maxPlayers: status?.maxPlayers ?? 20,
         players: [],
-        version: status?.version || 'Fabric 1.21.4',
+        version: status?.version || 'Fabric 26.2',
         uptimeSeconds: 0,
         memoryUsedMb: 0,
         memoryMaxMb: status?.memoryMaxMb ?? 8192,
@@ -356,7 +356,7 @@ export const ServerStatusPage: React.FC = () => {
           <div className="glass-panel rounded-2xl px-4 py-3 text-xs font-mono space-y-1 shrink-0">
             <div className="flex items-center gap-2 text-text-secondary">
               <Radio className="w-3.5 h-3.5 text-accent-cyan" />
-              <span>{status?.version || 'Minecraft Java · Fabric 1.21.x'}</span>
+              <span>{status?.version || 'Minecraft Java · Fabric 26.2'}</span>
             </div>
             <div className="flex items-center gap-2 text-text-muted tabular-nums">
               <Clock className="w-3.5 h-3.5 text-accent-cyan" />
