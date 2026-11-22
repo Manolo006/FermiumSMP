@@ -1,5 +1,6 @@
 import type { StatisticSlot } from '../types';
 import { membersList } from './members';
+import { projectSlots } from './projects';
 
 export const WORLD_START_DATE = '2026-10-12T22:30:00+01:00';
 
@@ -23,12 +24,12 @@ export const serverStatistics: StatisticSlot[] = [
   },
   {
     id: 'projects',
-    value: '5',
+    value: String(projectSlots.length),
     isPlaceholder: false,
   },
   {
     id: 'farms',
-    value: '4',
+    value: String(projectSlots.filter((p) => p.category === 'farms').length),
     isPlaceholder: false,
   },
   {

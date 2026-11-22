@@ -52,35 +52,50 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [location.pathname]);
 
-  // Homepage active section scroll-spy
+  // Homepage active section scroll-spy (deterministic monotonic order)
   useEffect(() => {
     if (!isHomeRoute) {
       setActiveSection('');
       return;
     }
 
-    const sectionIds = ['home', 'about', 'tools-hub', 'members', 'live', 'projects', 'gallery'];
-    const observers: IntersectionObserver[] = [];
+    const sectionIds = [
+      'home',
+      'about',
+      'members',
+      'projects',
+      'gallery',
+      'live',
+      'tools-hub',
+    ];
+    let rafId: number | null = null;
 
-    sectionIds.forEach((id) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const obs = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              setActiveSection(id);
-            }
-          });
-        },
-        { rootMargin: '-30% 0px -55% 0px', threshold: 0.01 }
-      );
-      obs.observe(el);
-      observers.push(obs);
-    });
+    const updateActiveSection = () => {
+      rafId = null;
+      const threshold = window.innerHeight * 0.35;
+      let current = 'home';
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= threshold) {
+          current = id;
+        }
+      }
+      setActiveSection(current);
+    };
 
+    const scheduleUpdate = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(updateActiveSection);
+    };
+
+    updateActiveSection();
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
     return () => {
-      observers.forEach((o) => o.disconnect());
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
     };
   }, [isHomeRoute]);
 
@@ -189,7 +204,7 @@ export const Navbar: React.FC = () => {
             </span>
           </button>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation (strictly ordered top-to-bottom matching Home.tsx) */}
           <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-1">
             <button
               type="button"
@@ -204,20 +219,6 @@ export const Navbar: React.FC = () => {
               className={navBtnClass(isHomeRoute && activeSection === 'about')}
             >
               {t.nav.about}
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('gallery')}
-              className={navBtnClass(isHomeRoute && activeSection === 'gallery')}
-            >
-              {t.nav.gallery}
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('live')}
-              className={navBtnClass(isHomeRoute && activeSection === 'live')}
-            >
-              {t.nav.live}
             </button>
 
             {/* Community Dropdown */}
@@ -313,6 +314,21 @@ export const Navbar: React.FC = () => {
                 </div>
               )}
             </div>
+
+            <button
+              type="button"
+              onClick={() => scrollToSection('gallery')}
+              className={navBtnClass(isHomeRoute && activeSection === 'gallery')}
+            >
+              {t.nav.gallery}
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('live')}
+              className={navBtnClass(isHomeRoute && activeSection === 'live')}
+            >
+              {t.nav.live}
+            </button>
 
             {/* Tools Dropdown */}
             <div
@@ -580,13 +596,6 @@ export const Navbar: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => scrollToSection('live')}
-              className="block w-full text-left px-3 py-2.5 rounded-xl text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.05]"
-            >
-              {t.nav.live}
-            </button>
-            <button
-              type="button"
               onClick={() => scrollToSection('projects')}
               className="block w-full text-left px-3 py-2.5 rounded-xl text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.05]"
             >
@@ -598,6 +607,13 @@ export const Navbar: React.FC = () => {
               className="block w-full text-left px-3 py-2.5 rounded-xl text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.05]"
             >
               {t.nav.gallery}
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('live')}
+              className="block w-full text-left px-3 py-2.5 rounded-xl text-sm text-text-secondary hover:text-text-primary hover:bg-white/[0.05]"
+            >
+              {t.nav.live}
             </button>
 
             <div className="pt-2 mt-2 border-t border-white/10 space-y-1">

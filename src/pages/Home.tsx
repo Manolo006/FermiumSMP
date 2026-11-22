@@ -15,11 +15,11 @@ export const Home: React.FC = () => {
       <Hero />
       <About />
       <Statistics />
-      <ToolsShowcase />
       <MembersPreview />
-      <MediaSection />
       <ProjectsPreview />
       <GalleryPreview />
+      <MediaSection />
+      <ToolsShowcase />
       <CommunityCTA />
     </>
   );

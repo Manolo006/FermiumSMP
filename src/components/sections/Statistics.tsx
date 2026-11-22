@@ -7,6 +7,7 @@ import { useSiteContent } from '../../context/SiteContentContext';
 export const Statistics: React.FC = () => {
   const { t, lang } = useLanguage();
   const { members, projects } = useSiteContent();
+  const farmsCount = projects.filter((p) => p.category === 'farms').length;
   const [worldDays, setWorldDays] = useState<number>(() => getWorldAgeDays());
 
   useEffect(() => {
@@ -55,6 +56,8 @@ export const Statistics: React.FC = () => {
                 ? String(members.length)
                 : stat.id === 'projects'
                 ? String(projects.length)
+                : stat.id === 'farms'
+                ? String(farmsCount)
                 : stat.value;
 
             return (

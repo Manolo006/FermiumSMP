@@ -164,7 +164,7 @@ export const MembersPreview: React.FC = () => {
   return (
     <section
       id="members"
-      className="relative py-24 sm:py-32 bg-bg-main border-t border-white/[0.06]"
+      className="relative py-24 sm:py-32 bg-bg-secondary/50 border-t border-white/[0.06]"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
