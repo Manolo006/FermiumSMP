@@ -126,6 +126,13 @@ rules_version = '2';
 //   - updatedAtMs: number (required, > 0)
 //   - updatedAt: timestamp (optional)
 //
+// Collection: server_status
+// Document ID: 'player_stats' (strictly enforced single live player statistics document)
+// Fields (publicly readable, no PII):
+//   - players: list<map> (required, max 120 items; inspected entries: {name: 1..40 string, uuid?: <=36 string, playTimeHours: 0..1000000 number, blocksMined: 0..2000000000 int, blocksPlaced: 0..2000000000 int, deaths: 0..100000000 int, mobKills: 0..2000000000 int, distanceKm: 0..100000000 number, carpetScore: 0..4000000000 int, topBlocks: list<map> (max 3 items; {id: 1..80 string, label: 1..80 string, count: 0..2000000000 int})})
+//   - updatedAtMs: number (required, > 0)
+//   - updatedAt: timestamp (optional)
+//
 // ===============================================================
 
 service cloud.firestore {
@@ -362,6 +369,53 @@ service cloud.firestore {
         (history.size() <= 2 || isValidHistorySample(history[history.size() - 1]));
     }
 
+    function isValidTopBlockEntry(b) {
+      return b is map &&
+        b.keys().hasOnly(['id', 'label', 'count']) &&
+        b.keys().hasAll(['id', 'label', 'count']) &&
+        isValidString(b.id, 1, 80) &&
+        isValidString(b.label, 1, 80) &&
+        b.count is int && b.count >= 0 && b.count <= 2000000000;
+    }
+
+    function isValidTopBlocksList(blocks) {
+      return blocks is list &&
+        blocks.size() <= 3 &&
+        (blocks.size() < 1 || isValidTopBlockEntry(blocks[0])) &&
+        (blocks.size() < 2 || isValidTopBlockEntry(blocks[1])) &&
+        (blocks.size() < 3 || isValidTopBlockEntry(blocks[2]));
+    }
+
+    function isValidPlayerStatsEntry(p) {
+      return p is map &&
+        p.keys().hasOnly([
+          'name', 'uuid', 'playTimeHours', 'blocksMined', 'blocksPlaced',
+          'deaths', 'mobKills', 'distanceKm', 'carpetScore', 'topBlocks'
+        ]) &&
+        p.keys().hasAll([
+          'name', 'playTimeHours', 'blocksMined', 'blocksPlaced',
+          'deaths', 'mobKills', 'distanceKm', 'carpetScore', 'topBlocks'
+        ]) &&
+        isValidString(p.name, 1, 40) &&
+        isValidOptionalString(p, 'uuid', 0, 36) &&
+        p.playTimeHours is number && p.playTimeHours >= 0 && p.playTimeHours <= 1000000 &&
+        p.blocksMined is int && p.blocksMined >= 0 && p.blocksMined <= 2000000000 &&
+        p.blocksPlaced is int && p.blocksPlaced >= 0 && p.blocksPlaced <= 2000000000 &&
+        p.deaths is int && p.deaths >= 0 && p.deaths <= 100000000 &&
+        p.mobKills is int && p.mobKills >= 0 && p.mobKills <= 2000000000 &&
+        p.distanceKm is number && p.distanceKm >= 0 && p.distanceKm <= 100000000 &&
+        p.carpetScore is int && p.carpetScore >= 0 && p.carpetScore <= 4000000000 &&
+        isValidTopBlocksList(p.topBlocks);
+    }
+
+    function isValidPlayerStatsList(players) {
+      return players is list &&
+        players.size() <= 120 &&
+        (players.size() < 1 || isValidPlayerStatsEntry(players[0])) &&
+        (players.size() < 2 || isValidPlayerStatsEntry(players[1])) &&
+        (players.size() <= 2 || isValidPlayerStatsEntry(players[players.size() - 1]));
+    }
+
     function isValidActorIdentifier(val) {
       return val is string &&
         val.size() >= 1 &&
@@ -573,6 +627,16 @@ service cloud.firestore {
         isValidOptionalTimestamp(data, 'updatedAt');
     }
 
+    function isValidPlayerStatsDoc(data) {
+      let allowed = ['players', 'updatedAtMs', 'updatedAt'];
+      let required = ['players', 'updatedAtMs'];
+      return hasOnlyAllowedFields(data, allowed) &&
+        hasRequiredFields(data, required) &&
+        isValidPlayerStatsList(data.players) &&
+        data.updatedAtMs is number && data.updatedAtMs > 0 &&
+        isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -647,6 +711,12 @@ service cloud.firestore {
     match /server_status/live {
       allow read: if true;
       allow create, update: if isStatusReporter() && isValidServerStatus(request.resource.data);
+      allow delete: if isFermiumAdmin();
+    }
+
+    match /server_status/player_stats {
+      allow read: if true;
+      allow create, update: if isStatusReporter() && isValidPlayerStatsDoc(request.resource.data);
       allow delete: if isFermiumAdmin();
     }
 

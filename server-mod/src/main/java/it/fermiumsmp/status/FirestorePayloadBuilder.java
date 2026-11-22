@@ -9,12 +9,14 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Serializes {@link StatusSnapshot.Snapshot} into Firestore REST v1 document JSON
+ * Serializes live server telemetry and player statistics into Firestore REST v1 document JSON
  * while enforcing every constraint verified by {@code firestore.rules}.
  */
 public final class FirestorePayloadBuilder {
 	private static final int MAX_PLAYERS_LIST = 60;
 	private static final int MAX_HISTORY_LIST = 60;
+	private static final int MAX_STATS_PLAYERS = 120;
+	private static final int MAX_TOP_BLOCKS = 3;
 	private static final long MAX_UPTIME_SECONDS = 315_360_000L;
 	private static final double MAX_MEMORY_MB = 1_048_576.0;
 	private static final Pattern SECTION_CODE_PATTERN = Pattern.compile("\\u00A7.");
@@ -74,6 +76,25 @@ public final class FirestorePayloadBuilder {
 		return root;
 	}
 
+	public static String toPlayerStatsDocumentJson(List<PlayerStatsModel.PlayerStatsEntry> players, long updatedAtMs) {
+		return COMPACT_GSON.toJson(toPlayerStatsDocument(players, updatedAtMs));
+	}
+
+	public static String toPlayersCanonicalJson(List<PlayerStatsModel.PlayerStatsEntry> players) {
+		return COMPACT_GSON.toJson(buildPlayerStatsArray(players == null ? List.of() : players));
+	}
+
+	public static JsonObject toPlayerStatsDocument(List<PlayerStatsModel.PlayerStatsEntry> players, long updatedAtMs) {
+		JsonObject fields = new JsonObject();
+		fields.add("players", buildPlayerStatsArray(players == null ? List.of() : players));
+		long safeTs = updatedAtMs > 0L ? updatedAtMs : System.currentTimeMillis();
+		fields.add("updatedAtMs", intField(safeTs));
+
+		JsonObject root = new JsonObject();
+		root.add("fields", fields);
+		return root;
+	}
+
 	private static JsonObject buildPlayersArray(List<StatusSnapshot.PlayerEntry> entries) {
 		JsonArray values = new JsonArray();
 		for (StatusSnapshot.PlayerEntry entry : entries) {
@@ -89,19 +110,9 @@ public final class FirestorePayloadBuilder {
 				pFields.add("uuid", stringField(truncate(entry.uuid().trim(), 36)));
 			}
 			pFields.add("isBot", boolField(entry.isBot()));
-
-			JsonObject map = new JsonObject();
-			map.add("fields", pFields);
-
-			JsonObject wrapper = new JsonObject();
-			wrapper.add("mapValue", map);
-			values.add(wrapper);
+			values.add(wrapMap(pFields));
 		}
-		JsonObject arrayValue = new JsonObject();
-		arrayValue.add("values", values);
-		JsonObject out = new JsonObject();
-		out.add("arrayValue", arrayValue);
-		return out;
+		return wrapArray(values);
 	}
 
 	private static JsonObject buildHistoryArray(List<StatusSnapshot.HistorySample> samples) {
@@ -118,19 +129,59 @@ public final class FirestorePayloadBuilder {
 			sFields.add("mspt", doubleField(clampDouble(sample.mspt(), 0.0, 5000.0)));
 			sFields.add("players", intField(clampLong(sample.players(), 0L, 500L)));
 			sFields.add("bots", intField(clampLong(sample.bots(), 0L, 500L)));
-
-			JsonObject map = new JsonObject();
-			map.add("fields", sFields);
-
-			JsonObject wrapper = new JsonObject();
-			wrapper.add("mapValue", map);
-			values.add(wrapper);
+			values.add(wrapMap(sFields));
 		}
-		JsonObject arrayValue = new JsonObject();
-		arrayValue.add("values", values);
-		JsonObject out = new JsonObject();
-		out.add("arrayValue", arrayValue);
-		return out;
+		return wrapArray(values);
+	}
+
+	private static JsonObject buildPlayerStatsArray(List<PlayerStatsModel.PlayerStatsEntry> entries) {
+		JsonArray values = new JsonArray();
+		for (PlayerStatsModel.PlayerStatsEntry entry : entries) {
+			if (values.size() >= MAX_STATS_PLAYERS) {
+				break;
+			}
+			if (entry == null || entry.name() == null || entry.name().isBlank()) {
+				continue;
+			}
+			JsonObject pFields = new JsonObject();
+			pFields.add("name", stringField(truncate(entry.name().trim(), 40)));
+			if (entry.uuid() != null && !entry.uuid().isBlank()) {
+				pFields.add("uuid", stringField(truncate(entry.uuid().trim(), 36)));
+			}
+			pFields.add("playTimeHours", doubleField(round1(clampDouble(entry.playTimeHours(), 0.0, 1_000_000.0))));
+			pFields.add("blocksMined", intField(clampLong(entry.blocksMined(), 0L, 2_000_000_000L)));
+			pFields.add("blocksPlaced", intField(clampLong(entry.blocksPlaced(), 0L, 2_000_000_000L)));
+			pFields.add("deaths", intField(clampLong(entry.deaths(), 0L, 100_000_000L)));
+			pFields.add("mobKills", intField(clampLong(entry.mobKills(), 0L, 2_000_000_000L)));
+			pFields.add("distanceKm", doubleField(round1(clampDouble(entry.distanceKm(), 0.0, 100_000_000.0))));
+			pFields.add("carpetScore", intField(clampLong(entry.carpetScore(), 0L, 4_000_000_000L)));
+			pFields.add("topBlocks", buildTopBlocksArray(entry.topBlocks()));
+			values.add(wrapMap(pFields));
+		}
+		return wrapArray(values);
+	}
+
+	private static JsonObject buildTopBlocksArray(List<PlayerStatsModel.TopBlock> blocks) {
+		JsonArray values = new JsonArray();
+		if (blocks != null) {
+			for (PlayerStatsModel.TopBlock block : blocks) {
+				if (values.size() >= MAX_TOP_BLOCKS) {
+					break;
+				}
+				if (block == null || block.id() == null || block.id().isBlank()) {
+					continue;
+				}
+				String safeLabel = (block.label() == null || block.label().isBlank())
+					? PlayerStatsParser.formatBlockLabel(block.id())
+					: block.label().trim();
+				JsonObject bFields = new JsonObject();
+				bFields.add("id", stringField(truncate(block.id().trim(), 80)));
+				bFields.add("label", stringField(truncate(safeLabel, 80)));
+				bFields.add("count", intField(clampLong(block.count(), 0L, 2_000_000_000L)));
+				values.add(wrapMap(bFields));
+			}
+		}
+		return wrapArray(values);
 	}
 
 	public static String sanitizeMotd(String raw) {
@@ -139,6 +190,22 @@ public final class FirestorePayloadBuilder {
 		}
 		String noCodes = SECTION_CODE_PATTERN.matcher(raw).replaceAll("");
 		return WHITESPACE_PATTERN.matcher(noCodes).replaceAll(" ").trim();
+	}
+
+	private static JsonObject wrapMap(JsonObject fields) {
+		JsonObject map = new JsonObject();
+		map.add("fields", fields);
+		JsonObject wrapper = new JsonObject();
+		wrapper.add("mapValue", map);
+		return wrapper;
+	}
+
+	private static JsonObject wrapArray(JsonArray values) {
+		JsonObject arrayValue = new JsonObject();
+		arrayValue.add("values", values);
+		JsonObject out = new JsonObject();
+		out.add("arrayValue", arrayValue);
+		return out;
 	}
 
 	private static JsonObject boolField(boolean value) {

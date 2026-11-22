@@ -7,10 +7,13 @@ import com.google.gson.JsonParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,16 +28,23 @@ class TelemetryUnitTest {
 		assertEquals("fermiumsmp", created.firebaseProjectId);
 		assertEquals("Fabric 26.2", created.serverVersion);
 		assertEquals(20, created.intervalSeconds);
+		assertTrue(created.syncPlayerStats);
+		assertEquals(300, created.statsIntervalSeconds);
 		if (System.getenv("FERMIUM_STATUS_PASSWORD") == null && System.getenv("STATUS_BOT_PASSWORD") == null) {
 			assertNull(created.resolvePassword());
 		}
 
 		created.intervalSeconds = 3;
+		created.statsIntervalSeconds = 10;
 		created.sanitize();
 		assertEquals(10, created.intervalSeconds);
+		assertEquals(60, created.statsIntervalSeconds);
+
 		created.intervalSeconds = 120;
+		created.statsIntervalSeconds = 99999;
 		created.sanitize();
 		assertEquals(60, created.intervalSeconds);
+		assertEquals(3600, created.statsIntervalSeconds);
 	}
 
 	@Test
@@ -131,5 +141,157 @@ class TelemetryUnitTest {
 		JsonElement lastTs = hArr.get(59).getAsJsonObject().getAsJsonObject("mapValue").getAsJsonObject("fields")
 			.getAsJsonObject("ts").get("integerValue");
 		assertEquals(Long.toString(1_700_000_000_000L + 74 * 20_000L), lastTs.getAsString());
+	}
+
+	@Test
+	void playerStatsParserExcludesToolsFoodAndComputesCarpetScore() {
+		String rawJson = """
+			{
+			  "stats": {
+			    "minecraft:custom": {
+			      "minecraft:play_time": 144000,
+			      "minecraft:deaths": 3,
+			      "minecraft:mob_kills": 420,
+			      "minecraft:walk_one_cm": 150000,
+			      "minecraft:fly_one_cm": 50000
+			    },
+			    "minecraft:mined": {
+			      "minecraft:deepslate": 2000,
+			      "minecraft:stone": 1200,
+			      "minecraft:netherrack": 800,
+			      "minecraft:dirt": 150
+			    },
+			    "minecraft:used": {
+			      "minecraft:stone_bricks": 600,
+			      "minecraft:redstone": 400,
+			      "minecraft:netherite_pickaxe": 9999,
+			      "minecraft:cooked_beef": 300,
+			      "minecraft:firework_rocket": 120,
+			      "minecraft:golden_carrot": 80
+			    }
+			  }
+			}
+			""";
+		JsonObject parsedJson = JsonParser.parseString(rawJson).getAsJsonObject();
+		PlayerStatsModel.PlayerStatsEntry entry = PlayerStatsParser.parse(
+			"Manolo006",
+			"01c530a3-5f97-448f-a25d-5cdd01c65715",
+			parsedJson
+		);
+
+		assertEquals("Manolo006", entry.name());
+		assertEquals("01c530a35f97448fa25d5cdd01c65715", entry.uuid());
+		assertEquals(2.0, entry.playTimeHours());
+		assertEquals(4150L, entry.blocksMined());
+		assertEquals(1000L, entry.blocksPlaced());
+		assertEquals(5150L, entry.carpetScore());
+		assertEquals(3L, entry.deaths());
+		assertEquals(420L, entry.mobKills());
+		assertEquals(2.0, entry.distanceKm());
+		assertEquals(3, entry.topBlocks().size());
+		assertEquals("deepslate", entry.topBlocks().get(0).id());
+		assertEquals("Deepslate", entry.topBlocks().get(0).label());
+		assertEquals(2000L, entry.topBlocks().get(0).count());
+		assertTrue(PlayerStatsParser.isOfflineBotUuid("11111111-1111-3111-8111-111111111111"));
+		assertFalse(PlayerStatsParser.isOfflineBotUuid("01c530a3-5f97-448f-a25d-5cdd01c65715"));
+	}
+
+	@Test
+	void playerStatsScannerReadsWhitelistUsercacheAndSkipsUntrackedBots(@TempDir Path dir) throws IOException {
+		Path statsDir = dir.resolve("world").resolve("stats");
+		Files.createDirectories(statsDir);
+
+		Files.writeString(dir.resolve("whitelist.json"), """
+			[
+			  {"uuid": "01c530a3-5f97-448f-a25d-5cdd01c65715", "name": "Manolo006"}
+			]
+			""", StandardCharsets.UTF_8);
+
+		Files.writeString(dir.resolve("usercache.json"), """
+			[
+			  {"uuid": "0c30ec2c-435c-4a75-aa5f-fe5f7cc4cf88", "name": "jenktland3"},
+			  {"uuid": "11111111-1111-3111-8111-111111111111", "name": "bot_raid"}
+			]
+			""", StandardCharsets.UTF_8);
+
+		Files.writeString(statsDir.resolve("01c530a3-5f97-448f-a25d-5cdd01c65715.json"), """
+			{"stats":{"minecraft:mined":{"minecraft:stone":100},"minecraft:used":{"minecraft:stone":50}}}
+			""", StandardCharsets.UTF_8);
+
+		Files.writeString(statsDir.resolve("0c30ec2c-435c-4a75-aa5f-fe5f7cc4cf88.json"), """
+			{"stats":{"minecraft:mined":{"minecraft:deepslate":500},"minecraft:used":{"minecraft:obsidian":100}}}
+			""", StandardCharsets.UTF_8);
+
+		// Untracked offline v3 bot UUID must be filtered out
+		Files.writeString(statsDir.resolve("11111111-1111-3111-8111-111111111111.json"), """
+			{"stats":{"minecraft:mined":{"minecraft:netherrack":99999}}}
+			""", StandardCharsets.UTF_8);
+
+		PlayerStatsScanner scanner = new PlayerStatsScanner(false);
+		List<PlayerStatsModel.PlayerStatsEntry> results = scanner.scan(statsDir, dir, Map.of());
+
+		assertEquals(2, results.size());
+		assertEquals("jenktland3", results.get(0).name());
+		assertEquals(600L, results.get(0).carpetScore());
+		assertEquals("Manolo006", results.get(1).name());
+		assertEquals(150L, results.get(1).carpetScore());
+	}
+
+	@Test
+	void firestorePlayerStatsPayloadMatchesRulesSchemaAndCaps() {
+		List<PlayerStatsModel.TopBlock> manyBlocks = List.of(
+			new PlayerStatsModel.TopBlock("deepslate", "Deepslate", 500),
+			new PlayerStatsModel.TopBlock("stone", "Stone", 300),
+			new PlayerStatsModel.TopBlock("netherrack", "Netherrack", 200),
+			new PlayerStatsModel.TopBlock("dirt", "Dirt", 10)
+		);
+
+		List<PlayerStatsModel.PlayerStatsEntry> manyPlayers = new ArrayList<>();
+		for (int i = 0; i < 140; i++) {
+			manyPlayers.add(new PlayerStatsModel.PlayerStatsEntry(
+				"LongPlayer_" + i + "_" + "z".repeat(45),
+				"01c530a35f97448fa25d5cdd01c65715-overflow",
+				12.34,
+				1000 + i,
+				200,
+				2,
+				50,
+				19.87,
+				1200 + i,
+				manyBlocks
+			));
+		}
+
+		String docJson = FirestorePayloadBuilder.toPlayerStatsDocumentJson(manyPlayers, 1_700_000_000_000L);
+		JsonObject root = JsonParser.parseString(docJson).getAsJsonObject();
+		JsonObject fields = root.getAsJsonObject("fields");
+
+		assertEquals(Set.of("players", "updatedAtMs"), fields.keySet());
+		assertTrue(fields.getAsJsonObject("updatedAtMs").has("integerValue"));
+
+		JsonArray pArr = fields.getAsJsonObject("players").getAsJsonObject("arrayValue").getAsJsonArray("values");
+		assertEquals(120, pArr.size());
+
+		JsonObject p0 = pArr.get(0).getAsJsonObject().getAsJsonObject("mapValue").getAsJsonObject("fields");
+		Set<String> allowedEntryKeys = Set.of(
+			"name", "uuid", "playTimeHours", "blocksMined", "blocksPlaced",
+			"deaths", "mobKills", "distanceKm", "carpetScore", "topBlocks"
+		);
+		assertEquals(allowedEntryKeys, p0.keySet());
+		assertTrue(p0.getAsJsonObject("name").get("stringValue").getAsString().length() <= 40);
+		assertTrue(p0.getAsJsonObject("uuid").get("stringValue").getAsString().length() <= 36);
+		assertTrue(p0.getAsJsonObject("playTimeHours").has("doubleValue"));
+		assertTrue(p0.getAsJsonObject("distanceKm").has("doubleValue"));
+		assertTrue(p0.getAsJsonObject("blocksMined").has("integerValue"));
+		assertTrue(p0.getAsJsonObject("blocksPlaced").has("integerValue"));
+		assertTrue(p0.getAsJsonObject("deaths").has("integerValue"));
+		assertTrue(p0.getAsJsonObject("mobKills").has("integerValue"));
+		assertTrue(p0.getAsJsonObject("carpetScore").has("integerValue"));
+
+		JsonArray bArr = p0.getAsJsonObject("topBlocks").getAsJsonObject("arrayValue").getAsJsonArray("values");
+		assertEquals(3, bArr.size());
+		JsonObject b0 = bArr.get(0).getAsJsonObject().getAsJsonObject("mapValue").getAsJsonObject("fields");
+		assertEquals(Set.of("id", "label", "count"), b0.keySet());
+		assertTrue(b0.getAsJsonObject("count").has("integerValue"));
 	}
 }

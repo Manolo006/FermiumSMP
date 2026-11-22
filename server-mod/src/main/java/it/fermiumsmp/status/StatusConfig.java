@@ -26,6 +26,8 @@ public final class StatusConfig {
 	public String reporterEmail = "status-bot@fermiumsmp.local";
 	public String reporterPassword = DEFAULT_PASSWORD_PLACEHOLDER;
 	public int intervalSeconds = 20;
+	public boolean syncPlayerStats = true;
+	public int statsIntervalSeconds = 300;
 	public String serverVersion = "Fabric 26.2";
 	public String motdOverride = "";
 
@@ -86,6 +88,11 @@ public final class StatusConfig {
 			intervalSeconds = 10;
 		} else if (intervalSeconds > 60) {
 			intervalSeconds = 60;
+		}
+		if (statsIntervalSeconds < 60) {
+			statsIntervalSeconds = 60;
+		} else if (statsIntervalSeconds > 3600) {
+			statsIntervalSeconds = 3600;
 		}
 	}
 

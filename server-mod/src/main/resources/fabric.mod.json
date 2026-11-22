@@ -3,7 +3,7 @@
   "id": "fermium-status",
   "version": "${version}",
   "name": "Fermium Server Status",
-  "description": "Lightweight server-side telemetry reporter pushing TPS, MSPT, RAM, uptime, players and Carpet bots directly to Fermium SMP Firestore.",
+  "description": "Lightweight server-side telemetry reporter pushing live TPS, MSPT, RAM, players/Carpet bots and automatic player statistics directly to Fermium SMP Firestore.",
   "authors": [
     "Fermium SMP"
   ],

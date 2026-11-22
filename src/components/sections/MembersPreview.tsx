@@ -1,14 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { BarChart3, Search, UserPlus, X } from 'lucide-react';
 import type { Member, MemberRoleGroup, MemberStats } from '../../types';
-import {
-  buildFallbackStatsForName,
-  defaultMemberStats,
-} from '../../data/memberStats';
+import { buildFallbackStatsForName } from '../../data/memberStats';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useSiteContent } from '../../context/SiteContentContext';
-import { LIVE_STATS_JSON_URL } from '../../config/links';
+import { usePlayerStats } from '../../hooks/usePlayerStats';
 import { Badge } from '../ui/Badge';
 import { MemberCard, type MemberCardOriginRects } from '../ui/MemberCard';
 import { MemberStatsModal } from '../ui/MemberStatsModal';
@@ -26,7 +23,7 @@ export const MembersPreview: React.FC = () => {
   const { isAdmin } = useAdminAuth();
   const { members, saveMember, deleteMember } = useSiteContent();
 
-  const [statsList, setStatsList] = useState<MemberStats[]>(defaultMemberStats);
+  const statsList = usePlayerStats();
   const [roleFilter, setRoleFilter] = useState<MemberRoleFilter>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -34,40 +31,6 @@ export const MembersPreview: React.FC = () => {
   const [memberModalOpen, setMemberModalOpen] = useState<boolean>(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const bust = Date.now();
-
-    async function loadLiveStats() {
-      const candidates = [
-        `${LIVE_STATS_JSON_URL}?t=${bust}`,
-        `./stats.json?t=${bust}`,
-      ];
-      for (const url of candidates) {
-        try {
-          const res = await fetch(url, { cache: 'no-store' });
-          if (!res.ok) continue;
-          const data = await res.json();
-          if (cancelled || !Array.isArray(data)) return;
-          const valid = data.filter(
-            (item): item is MemberStats => item && typeof item.name === 'string'
-          );
-          if (valid.length > 0) {
-            setStatsList(valid);
-            return;
-          }
-        } catch {
-          // fallback al sorgente successivo
-        }
-      }
-    }
-
-    loadLiveStats();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleDeleteMember = async (member: Member) => {
     const confirmMsg = isIt

@@ -10,6 +10,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Lightweight Firebase Auth + Firestore REST v1 client built strictly on {@link HttpClient}.
@@ -38,15 +39,28 @@ public final class FirebaseTelemetryClient {
 	}
 
 	public boolean push(StatusSnapshot.Snapshot snapshot, Duration timeout) {
+		String body = FirestorePayloadBuilder.toFirestoreDocumentJson(snapshot);
+		return pushDocument("server_status/live", body, timeout);
+	}
+
+	public boolean pushPlayerStats(
+		List<PlayerStatsModel.PlayerStatsEntry> entries,
+		long updatedAtMs,
+		Duration timeout
+	) {
+		String body = FirestorePayloadBuilder.toPlayerStatsDocumentJson(entries, updatedAtMs);
+		return pushDocument("server_status/player_stats", body, timeout);
+	}
+
+	private boolean pushDocument(String documentPath, String jsonBody, Duration timeout) {
 		try {
-			String body = FirestorePayloadBuilder.toFirestoreDocumentJson(snapshot);
 			String token = ensureIdToken(timeout);
-			HttpResponse<String> response = patchDocument(token, body, timeout);
+			HttpResponse<String> response = patchDocument(documentPath, token, jsonBody, timeout);
 
 			if (response.statusCode() == 401) {
 				invalidateToken();
 				token = ensureIdToken(timeout);
-				response = patchDocument(token, body, timeout);
+				response = patchDocument(documentPath, token, jsonBody, timeout);
 			}
 
 			if (response.statusCode() >= 200 && response.statusCode() < 300) {
@@ -54,7 +68,8 @@ public final class FirebaseTelemetryClient {
 			}
 
 			logErrorRateLimited(
-				"Firestore PATCH HTTP {} (verifica firestore.rules / permessi): {}",
+				"Firestore PATCH {} HTTP {} (verifica firestore.rules / permessi): {}",
+				documentPath,
 				response.statusCode(),
 				summarizeHttpBody(response.body())
 			);
@@ -63,15 +78,21 @@ public final class FirebaseTelemetryClient {
 			Thread.currentThread().interrupt();
 			return false;
 		} catch (Exception e) {
-			logErrorRateLimited("Errore invio telemetria Firebase: {}", e.getMessage());
+			logErrorRateLimited("Errore invio Firebase ({}): {}", documentPath, e.getMessage());
 			return false;
 		}
 	}
 
-	private HttpResponse<String> patchDocument(String token, String jsonBody, Duration timeout) throws Exception {
+	private HttpResponse<String> patchDocument(
+		String documentPath,
+		String token,
+		String jsonBody,
+		Duration timeout
+	) throws Exception {
 		String endpoint = "https://firestore.googleapis.com/v1/projects/"
 			+ config.firebaseProjectId
-			+ "/databases/(default)/documents/server_status/live";
+			+ "/databases/(default)/documents/"
+			+ documentPath;
 
 		HttpRequest req = HttpRequest.newBuilder(URI.create(endpoint))
 			.timeout(timeout)
