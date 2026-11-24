@@ -113,16 +113,16 @@ rules_version = '2';
 //   - mspt: number (required, 0..5000)
 //   - msptMin: number (optional, 0..5000)
 //   - msptMax: number (optional, 0..5000)
-//   - playersOnline: int (required, 0..500)
-//   - botsOnline: int (optional, 0..500)
-//   - maxPlayers: int (required, 0..500)
+//   - playersOnline: number (required, 0..500)
+//   - botsOnline: number (optional, 0..500)
+//   - maxPlayers: number (required, 0..500)
 //   - players: list<map> (optional, max 60 items; inspected entries: {name: 1..40 string, uuid?: <=36 string, isBot?: bool})
 //   - version: string (optional, 0..80 chars)
 //   - motd: string (optional, 0..200 chars)
-//   - uptimeSeconds: int (optional, 0..315360000)
+//   - uptimeSeconds: number (optional, 0..315360000)
 //   - memoryUsedMb: number (optional, 0..1048576)
 //   - memoryMaxMb: number (optional, 0..1048576)
-//   - history: list<map> (optional, max 60 items; inspected entries: {ts: >0 number, tps: 0..25 number, mspt: 0..5000 number, players: 0..500 int, bots?: 0..500 int})
+//   - history: list<map> (optional, max 60 items; inspected entries: {ts: >0 number, tps: 0..25 number, mspt: 0..5000 number, players: 0..500 number, bots?: 0..500 number})
 //   - updatedAtMs: number (required, > 0)
 //   - updatedAt: timestamp (optional)
 //
@@ -346,8 +346,7 @@ service cloud.firestore {
       return players is list &&
         players.size() <= 60 &&
         (players.size() < 1 || isValidPlayerEntry(players[0])) &&
-        (players.size() < 2 || isValidPlayerEntry(players[1])) &&
-        (players.size() <= 2 || isValidPlayerEntry(players[players.size() - 1]));
+        (players.size() < 2 || isValidPlayerEntry(players[1]));
     }
 
     function isValidHistorySample(s) {
@@ -357,16 +356,15 @@ service cloud.firestore {
         s.ts is number && s.ts > 0 &&
         s.tps is number && s.tps >= 0 && s.tps <= 25 &&
         s.mspt is number && s.mspt >= 0 && s.mspt <= 5000 &&
-        s.players is int && s.players >= 0 && s.players <= 500 &&
-        (!('bots' in s) || (s.bots is int && s.bots >= 0 && s.bots <= 500));
+        s.players is number && s.players >= 0 && s.players <= 500 &&
+        (!('bots' in s) || (s.bots is number && s.bots >= 0 && s.bots <= 500));
     }
 
     function isValidHistoryList(history) {
       return history is list &&
         history.size() <= 60 &&
         (history.size() < 1 || isValidHistorySample(history[0])) &&
-        (history.size() < 2 || isValidHistorySample(history[1])) &&
-        (history.size() <= 2 || isValidHistorySample(history[history.size() - 1]));
+        (history.size() < 2 || isValidHistorySample(history[1]));
     }
 
     function isValidTopBlockEntry(b) {
@@ -607,13 +605,13 @@ service cloud.firestore {
         data.mspt is number && data.mspt >= 0 && data.mspt <= 5000 &&
         isValidOptionalNumber(data, 'msptMin', 0, 5000) &&
         isValidOptionalNumber(data, 'msptMax', 0, 5000) &&
-        data.playersOnline is int && data.playersOnline >= 0 && data.playersOnline <= 500 &&
-        isValidOptionalInt(data, 'botsOnline', 0, 500) &&
-        data.maxPlayers is int && data.maxPlayers >= 0 && data.maxPlayers <= 500 &&
+        data.playersOnline is number && data.playersOnline >= 0 && data.playersOnline <= 500 &&
+        isValidOptionalNumber(data, 'botsOnline', 0, 500) &&
+        data.maxPlayers is number && data.maxPlayers >= 0 && data.maxPlayers <= 500 &&
         (!('players' in data) || isValidPlayerList(data.players)) &&
         isValidOptionalString(data, 'version', 0, 80) &&
         isValidOptionalString(data, 'motd', 0, 200) &&
-        isValidOptionalInt(data, 'uptimeSeconds', 0, 315360000) &&
+        isValidOptionalNumber(data, 'uptimeSeconds', 0, 315360000) &&
         isValidOptionalNumber(data, 'memoryUsedMb', 0, 1048576) &&
         isValidOptionalNumber(data, 'memoryMaxMb', 0, 1048576) &&
         (!('history' in data) || isValidHistoryList(data.history)) &&
