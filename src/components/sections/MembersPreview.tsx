@@ -67,22 +67,29 @@ export const MembersPreview: React.FC = () => {
     });
   }, [members, statsByUuid, statsByName]);
 
-  const { maxCarpetScore, maxBlocksMined, rankByName } = useMemo(() => {
+  const { maxCarpetScore, maxBlocksMined, rankByMemberId } = useMemo(() => {
     let maxCarpet = 1;
     let maxMined = 1;
     for (const st of memberMetrics) {
       if (st.carpetScore > maxCarpet) maxCarpet = st.carpetScore;
       if (st.blocksMined > maxMined) maxMined = st.blocksMined;
     }
-    const sorted = [...memberMetrics].sort((a, b) => b.carpetScore - a.carpetScore);
+    const sorted = members
+      .map((m, idx) => ({ id: m.id, stats: memberMetrics[idx] }))
+      .sort(
+        (a, b) =>
+          b.stats.carpetScore - a.stats.carpetScore ||
+          b.stats.blocksMined - a.stats.blocksMined ||
+          b.stats.playTimeHours - a.stats.playTimeHours
+      );
     const rankMap = new Map<string, number>();
-    sorted.forEach((st, idx) => rankMap.set(st.name.toLowerCase(), idx + 1));
+    sorted.forEach((entry, idx) => rankMap.set(entry.id, idx + 1));
     return {
       maxCarpetScore: maxCarpet,
       maxBlocksMined: maxMined,
-      rankByName: rankMap,
+      rankByMemberId: rankMap,
     };
-  }, [memberMetrics]);
+  }, [members, memberMetrics]);
 
   // Role counts
   const roleCounts = useMemo(() => {
@@ -112,7 +119,7 @@ export const MembersPreview: React.FC = () => {
   const selectedMember = selectedGlobalIdx !== null ? members[selectedGlobalIdx] ?? null : null;
   const selectedStats = selectedGlobalIdx !== null ? memberMetrics[selectedGlobalIdx] ?? null : null;
   const selectedRank = selectedMember
-    ? rankByName.get(selectedMember.name.toLowerCase()) ?? 1
+    ? rankByMemberId.get(selectedMember.id) ?? 1
     : 1;
 
   const filterOrder: MemberRoleFilter[] = ['all', 'owner', 'member', 'trial'];
@@ -247,6 +254,8 @@ export const MembersPreview: React.FC = () => {
               <MemberCard
                 key={member.id}
                 member={member}
+                rank={rankByMemberId.get(member.id)}
+                totalMembers={members.length}
                 isHidden={selectedMember?.id === member.id}
                 isAdmin={isAdmin}
                 onEdit={(m) => {

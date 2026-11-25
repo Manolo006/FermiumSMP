@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BarChart3, Pencil, Trash2 } from 'lucide-react';
+import { BarChart3, Crown, Pencil, Trash2 } from 'lucide-react';
 import type { Member, MemberRoleGroup } from '../../types';
 import { getMemberSkinUrls } from '../../data/members';
 
@@ -11,6 +11,8 @@ export interface MemberCardOriginRects {
 
 interface MemberCardProps {
   member: Member;
+  rank?: number;
+  totalMembers?: number;
   isHidden?: boolean;
   onSelect?: (member: Member, metrics: MemberCardOriginRects | null) => void;
   isAdmin?: boolean;
@@ -18,8 +20,38 @@ interface MemberCardProps {
   onDelete?: (member: Member) => void;
 }
 
+function getCardRankStyle(rank: number): { badgeClass: string; iconClass: string } {
+  if (rank === 1) {
+    return {
+      badgeClass:
+        'bg-[#1B160A]/90 border-amber-300/70 text-amber-300 shadow-[0_0_18px_rgba(251,191,36,0.34)]',
+      iconClass: 'text-amber-300',
+    };
+  }
+  if (rank === 2) {
+    return {
+      badgeClass:
+        'bg-[#131822]/90 border-slate-300/60 text-slate-100 shadow-[0_0_14px_rgba(203,213,225,0.22)]',
+      iconClass: 'text-slate-200',
+    };
+  }
+  if (rank === 3) {
+    return {
+      badgeClass:
+        'bg-[#1D130C]/90 border-orange-400/60 text-orange-300 shadow-[0_0_14px_rgba(251,146,60,0.24)]',
+      iconClass: 'text-orange-300',
+    };
+  }
+  return {
+    badgeClass: 'bg-[#0E141D]/85 border-white/15 text-text-secondary',
+    iconClass: 'text-text-muted',
+  };
+}
+
 export const MemberCard: React.FC<MemberCardProps> = ({
   member,
+  rank,
+  totalMembers,
   isHidden = false,
   onSelect,
   isAdmin = false,
@@ -71,6 +103,7 @@ export const MemberCard: React.FC<MemberCardProps> = ({
   };
 
   const style = roleStyles[member.roleGroup];
+  const rankStyle = typeof rank === 'number' && rank > 0 ? getCardRankStyle(rank) : null;
 
   const handleClick = () => {
     const pillRect = pillRef.current?.getBoundingClientRect();
@@ -117,11 +150,22 @@ export const MemberCard: React.FC<MemberCardProps> = ({
         onClick={handleClick}
         className="relative flex flex-col items-center pt-4 pb-2 px-2 select-none w-full text-center cursor-pointer transition-[transform,opacity] duration-150 ease-out-Quart active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/80 rounded-3xl"
       >
-        {/* Subtle Hover Stats Hint */}
-        <span className="absolute top-3 right-4 z-20 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#0E141D]/90 border border-white/15 text-text-secondary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-visible:opacity-100 group-focus-visible:translate-y-0 transition-[opacity,transform] duration-200 pointer-events-none">
-          <BarChart3 className="w-3 h-3 text-accent-cyan" />
-          <span>Stats</span>
-        </span>
+        {/* Top-Right Leaderboard Position Badge + Hover Stats Hint */}
+        <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-1.5 pointer-events-none">
+          {typeof rank === 'number' && rank > 0 && rankStyle && (
+            <span
+              aria-label={totalMembers ? `Posizione #${rank} su ${totalMembers}` : `Posizione #${rank}`}
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold tabular-nums border backdrop-blur-md transition-transform duration-200 ease-out-Quart group-hover:-translate-y-0.5 ${rankStyle.badgeClass}`}
+            >
+              {rank <= 3 && <Crown className={`w-3 h-3 shrink-0 ${rankStyle.iconClass}`} />}
+              <span>#{rank}</span>
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#0E141D]/90 border border-white/15 text-text-secondary backdrop-blur-md opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-visible:opacity-100 group-focus-visible:translate-y-0 transition-[opacity,transform] duration-200">
+            <BarChart3 className="w-3 h-3 text-accent-cyan" />
+            <span>Stats</span>
+          </span>
+        </div>
 
         {/* Bust Container with Dynamic Skin Back-Blur */}
         <div className="relative w-full max-w-[210px] aspect-square flex items-end justify-center">
