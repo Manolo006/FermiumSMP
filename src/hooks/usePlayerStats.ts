@@ -10,23 +10,28 @@ function toFiniteNumber(val: unknown, fallback = 0): number {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
-function normalizeMemberStatsEntry(raw: unknown): MemberStats | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const obj = raw as Record<string, unknown>;
-  if (typeof obj.name !== 'string' || !obj.name.trim()) return null;
-
-  const rawTop = Array.isArray(obj.topBlocks) ? obj.topBlocks : [];
-  const topBlocks: MemberStatTopBlock[] = [];
-  for (const item of rawTop.slice(0, 3)) {
+function normalizeBreakdownEntries(raw: unknown, maxItems = 10): MemberStatTopBlock[] {
+  if (!Array.isArray(raw)) return [];
+  const items: MemberStatTopBlock[] = [];
+  for (const item of raw.slice(0, maxItems)) {
     if (!item || typeof item !== 'object') continue;
     const b = item as Record<string, unknown>;
     if (typeof b.id !== 'string' || !b.id.trim()) continue;
-    topBlocks.push({
+    items.push({
       id: b.id.trim(),
       label: typeof b.label === 'string' && b.label.trim() ? b.label.trim() : b.id.trim(),
       count: Math.round(toFiniteNumber(b.count)),
     });
   }
+  return items;
+}
+
+function normalizeMemberStatsEntry(raw: unknown): MemberStats | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.name !== 'string' || !obj.name.trim()) return null;
+
+  const topBlocks = normalizeBreakdownEntries(obj.topBlocks, 10);
 
   return {
     name: obj.name.trim(),
@@ -39,6 +44,12 @@ function normalizeMemberStatsEntry(raw: unknown): MemberStats | null {
     distanceKm: toFiniteNumber(obj.distanceKm),
     carpetScore: Math.round(toFiniteNumber(obj.carpetScore)),
     topBlocks,
+    ...(Array.isArray(obj.topPlacedBlocks)
+      ? { topPlacedBlocks: normalizeBreakdownEntries(obj.topPlacedBlocks, 10) }
+      : {}),
+    ...(Array.isArray(obj.topKilledMobs)
+      ? { topKilledMobs: normalizeBreakdownEntries(obj.topKilledMobs, 10) }
+      : {}),
   };
 }
 

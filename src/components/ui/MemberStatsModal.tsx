@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import {
+  ArrowLeft,
   Award,
   Box,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -15,11 +17,21 @@ import {
   Swords,
   X,
 } from 'lucide-react';
-import type { Member, MemberRoleGroup, MemberStats } from '../../types';
+import type {
+  Member,
+  MemberRoleGroup,
+  MemberStatBreakdownItem,
+  MemberStats,
+} from '../../types';
 import type { MemberCardOriginRects } from './MemberCard';
 import { getMemberSkinUrls } from '../../data/members';
 import { useLanguage } from '../../i18n/LanguageContext';
-import { getMinecraftBlockIconCandidates } from '../../utils/mcBlockIcons';
+import {
+  getMinecraftBlockIconCandidates,
+  getMinecraftMobIconCandidates,
+} from '../../utils/mcBlockIcons';
+
+type BreakdownCategory = 'mined' | 'placed' | 'mobs';
 
 interface MemberStatsModalProps {
   member: Member | null;
@@ -35,16 +47,18 @@ interface MemberStatsModalProps {
   onNext: () => void;
 }
 
-const BlockTextureIcon: React.FC<{ blockId: string; label: string }> = ({
-  blockId,
-  label,
-}) => {
-  const candidates = useMemo(() => getMinecraftBlockIconCandidates(blockId), [blockId]);
+const VanillaTextureIcon: React.FC<{
+  assetId: string;
+  label: string;
+  getCandidates: (id: string) => string[];
+  fallbackIcon: React.ReactNode;
+}> = ({ assetId, label, getCandidates, fallbackIcon }) => {
+  const candidates = useMemo(() => getCandidates(assetId), [assetId, getCandidates]);
   const [candidateIdx, setCandidateIdx] = useState(0);
 
   useEffect(() => {
     setCandidateIdx(0);
-  }, [blockId]);
+  }, [assetId]);
 
   const src = candidates[candidateIdx];
   if (!src) {
@@ -54,7 +68,7 @@ const BlockTextureIcon: React.FC<{ blockId: string; label: string }> = ({
         aria-label={label}
         className="w-6 h-6 rounded border border-white/10 bg-[#181C24] flex items-center justify-center shrink-0"
       >
-        <Box className="w-3.5 h-3.5 text-text-muted" />
+        {fallbackIcon}
       </div>
     );
   }
@@ -70,6 +84,30 @@ const BlockTextureIcon: React.FC<{ blockId: string; label: string }> = ({
     />
   );
 };
+
+const BlockTextureIcon: React.FC<{ blockId: string; label: string }> = ({
+  blockId,
+  label,
+}) => (
+  <VanillaTextureIcon
+    assetId={blockId}
+    label={label}
+    getCandidates={getMinecraftBlockIconCandidates}
+    fallbackIcon={<Box className="w-3.5 h-3.5 text-text-muted" />}
+  />
+);
+
+const MobTextureIcon: React.FC<{ mobId: string; label: string }> = ({
+  mobId,
+  label,
+}) => (
+  <VanillaTextureIcon
+    assetId={mobId}
+    label={label}
+    getCandidates={getMinecraftMobIconCandidates}
+    fallbackIcon={<Swords className="w-3.5 h-3.5 text-purple-300" />}
+  />
+);
 
 const ROLE_THEME: Record<
   MemberRoleGroup,
@@ -165,6 +203,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
   const { lang } = useLanguage();
   const isIt = lang === 'it';
   const [skinMode, setSkinMode] = useState<'bust' | 'full'>('bust');
+  const [activeBreakdown, setActiveBreakdown] = useState<BreakdownCategory | null>(null);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const backdropRef = useRef<HTMLDivElement | null>(null);
@@ -336,6 +375,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
       isClosingRef.current = false;
       navDirRef.current = 0;
       setSkinMode('bust');
+      setActiveBreakdown(null);
     }
   }, [member]);
 
@@ -720,7 +760,11 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
   };
   const safeCarpet = stats.carpetScore ?? 0;
   const safeMined = stats.blocksMined ?? 0;
+  const safePlaced = stats.blocksPlaced ?? 0;
+  const safeMobKills = stats.mobKills ?? 0;
   const topBlocks = Array.isArray(stats.topBlocks) ? stats.topBlocks : [];
+  const topPlacedBlocks = Array.isArray(stats.topPlacedBlocks) ? stats.topPlacedBlocks : [];
+  const topKilledMobs = Array.isArray(stats.topKilledMobs) ? stats.topKilledMobs : [];
   const serverSharePct =
     typeof overallSharePct === 'number'
       ? Math.max(0, Math.min(100, Math.round(overallSharePct)))
@@ -731,14 +775,45 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
     maxBlocksMined > 0 ? Math.min(100, Math.round((safeMined / maxBlocksMined) * 100)) : 100;
   const maxTopBlockCount = topBlocks.reduce((acc, b) => Math.max(acc, b.count), 1);
 
-  const primaryCards = [
+  const primaryCards: Array<{
+    key: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    accent: string;
+    hoverBorder: string;
+    activeClass?: string;
+    bgGlow: string;
+    breakdown?: BreakdownCategory;
+  }> = [
     {
       key: 'blocksMined',
       label: isIt ? 'Blocchi Rotti' : 'Blocks Mined',
       icon: Pickaxe,
       accent: 'text-accent-cyan',
-      hoverBorder: 'hover:border-accent-cyan/35',
+      hoverBorder: 'hover:border-accent-cyan/45',
+      activeClass: 'border-accent-cyan/70 ring-1 ring-accent-cyan/30 bg-accent-cyan/[0.06]',
       bgGlow: 'from-accent-cyan/15 to-transparent',
+      breakdown: 'mined',
+    },
+    {
+      key: 'blocksPlaced',
+      label: isIt ? 'Blocchi Piazzati' : 'Blocks Placed',
+      icon: Hammer,
+      accent: 'text-amber-300',
+      hoverBorder: 'hover:border-amber-300/45',
+      activeClass: 'border-amber-300/70 ring-1 ring-amber-300/30 bg-amber-300/[0.06]',
+      bgGlow: 'from-amber-300/15 to-transparent',
+      breakdown: 'placed',
+    },
+    {
+      key: 'mobKills',
+      label: isIt ? 'Mob Uccisi' : 'Mob Kills',
+      icon: Swords,
+      accent: 'text-purple-400',
+      hoverBorder: 'hover:border-purple-400/45',
+      activeClass: 'border-purple-400/70 ring-1 ring-purple-400/30 bg-purple-400/[0.06]',
+      bgGlow: 'from-purple-400/15 to-transparent',
+      breakdown: 'mobs',
     },
     {
       key: 'playTimeHours',
@@ -749,14 +824,6 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
       bgGlow: 'from-sky-400/15 to-transparent',
     },
     {
-      key: 'carpetScore',
-      label: 'Carpet /stats',
-      icon: Award,
-      accent: 'text-emerald-400',
-      hoverBorder: 'hover:border-emerald-400/35',
-      bgGlow: 'from-emerald-400/15 to-transparent',
-    },
-    {
       key: 'deaths',
       label: isIt ? 'Morti' : 'Deaths',
       icon: Skull,
@@ -765,22 +832,64 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
       bgGlow: 'from-rose-400/15 to-transparent',
     },
     {
-      key: 'blocksPlaced',
-      label: isIt ? 'Blocchi Piazzati' : 'Blocks Placed',
-      icon: Hammer,
-      accent: 'text-amber-300',
-      hoverBorder: 'hover:border-amber-300/35',
-      bgGlow: 'from-amber-300/15 to-transparent',
-    },
-    {
-      key: 'mobKills',
-      label: isIt ? 'Mob Uccisi' : 'Mob Kills',
-      icon: Swords,
-      accent: 'text-purple-400',
-      hoverBorder: 'hover:border-purple-400/35',
-      bgGlow: 'from-purple-400/15 to-transparent',
+      key: 'carpetScore',
+      label: 'Carpet /stats',
+      icon: Award,
+      accent: 'text-emerald-400',
+      hoverBorder: 'hover:border-emerald-400/35',
+      bgGlow: 'from-emerald-400/15 to-transparent',
     },
   ];
+
+  const breakdownConfig: Record<
+    BreakdownCategory,
+    {
+      title: string;
+      icon: React.ComponentType<{ className?: string }>;
+      accent: string;
+      borderClass: string;
+      barClass: string;
+      items: MemberStatBreakdownItem[];
+      total: number;
+      kind: 'block' | 'mob';
+    }
+  > = {
+    mined: {
+      title: isIt ? 'Classifica Personale · Blocchi Rotti' : 'Personal Top · Blocks Mined',
+      icon: Pickaxe,
+      accent: 'text-accent-cyan',
+      borderClass: 'border-accent-cyan/35',
+      barClass: 'bg-gradient-to-r from-accent-cyan-deep to-accent-cyan-hover',
+      items: topBlocks,
+      total: safeMined,
+      kind: 'block',
+    },
+    placed: {
+      title: isIt ? 'Classifica Personale · Blocchi Piazzati' : 'Personal Top · Blocks Placed',
+      icon: Hammer,
+      accent: 'text-amber-300',
+      borderClass: 'border-amber-300/35',
+      barClass: 'bg-gradient-to-r from-amber-500 to-yellow-300',
+      items: topPlacedBlocks,
+      total: safePlaced,
+      kind: 'block',
+    },
+    mobs: {
+      title: isIt ? 'Classifica Personale · Mob Uccisi' : 'Personal Top · Mob Kills',
+      icon: Swords,
+      accent: 'text-purple-400',
+      borderClass: 'border-purple-400/35',
+      barClass: 'bg-gradient-to-r from-purple-500 to-fuchsia-400',
+      items: topKilledMobs,
+      total: safeMobKills,
+      kind: 'mob',
+    },
+  };
+
+  const activeBreakdownMeta = activeBreakdown ? breakdownConfig[activeBreakdown] : null;
+  const activeBreakdownMaxCount = activeBreakdownMeta
+    ? activeBreakdownMeta.items.reduce((acc, item) => Math.max(acc, item.count), 1)
+    : 1;
 
   return (
     <div
@@ -991,14 +1100,24 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {primaryCards.map((card) => {
                 const Icon = card.icon;
-                return (
-                  <div
-                    key={card.key}
-                    data-stat-card
-                    className={`group/tile rounded-2xl bg-[#11141A]/90 border border-white/[0.07] ${card.hoverBorder} p-3.5 relative overflow-hidden transition-[transform,border-color] duration-200 hover:-translate-y-0.5`}
-                  >
+                const breakdownKey = card.breakdown;
+                const isInteractive = Boolean(breakdownKey);
+                const isActive = Boolean(breakdownKey && activeBreakdown === breakdownKey);
+                const cardClassName = `group/tile w-full rounded-2xl bg-[#11141A]/90 border ${
+                  isActive && card.activeClass
+                    ? card.activeClass
+                    : `border-white/[0.07] ${card.hoverBorder}`
+                } p-3.5 relative overflow-hidden transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 text-left ${
+                  isInteractive
+                    ? 'cursor-pointer active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/70'
+                    : ''
+                }`;
+                const inner = (
+                  <>
                     <div
-                      className={`absolute inset-0 bg-gradient-to-br ${card.bgGlow} opacity-45 group-hover/tile:opacity-80 transition-opacity duration-200 pointer-events-none`}
+                      className={`absolute inset-0 bg-gradient-to-br ${card.bgGlow} ${
+                        isActive ? 'opacity-85' : 'opacity-45 group-hover/tile:opacity-80'
+                      } transition-opacity duration-200 pointer-events-none`}
                     />
                     <div className="relative flex items-center justify-between gap-2 mb-2">
                       <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted truncate">
@@ -1008,125 +1127,278 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
                         className={`w-4 h-4 shrink-0 ${card.accent} transition-transform duration-200 group-hover/tile:scale-110`}
                       />
                     </div>
-                    <div className="relative text-xl sm:text-2xl font-heading font-bold text-text-primary tabular-nums">
+                    <div className="relative flex items-baseline justify-between gap-2">
                       <span
                         ref={(el) => {
                           counterRefs.current[card.key] = el;
                         }}
+                        className="text-xl sm:text-2xl font-heading font-bold text-text-primary tabular-nums"
                       >
                         0
                       </span>
+                      {isInteractive && (
+                        <span
+                          className={`inline-flex items-center gap-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors ${
+                            isActive
+                              ? card.accent
+                              : 'text-text-muted group-hover/tile:text-text-secondary'
+                          }`}
+                        >
+                          <span>{isActive ? (isIt ? 'Attivo' : 'Active') : 'Top'}</span>
+                          <ChevronDown
+                            className={`w-3 h-3 transition-transform duration-200 ${
+                              isActive ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </span>
+                      )}
                     </div>
+                  </>
+                );
+
+                if (breakdownKey) {
+                  return (
+                    <button
+                      key={card.key}
+                      type="button"
+                      data-stat-card
+                      aria-pressed={isActive}
+                      onClick={() =>
+                        setActiveBreakdown((prev) =>
+                          prev === breakdownKey ? null : breakdownKey
+                        )
+                      }
+                      className={cardClassName}
+                    >
+                      {inner}
+                    </button>
+                  );
+                }
+
+                return (
+                  <div key={card.key} data-stat-card className={cardClassName}>
+                    {inner}
                   </div>
                 );
               })}
             </div>
 
-            {/* Animated Comparison + Top Mined Blocks */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Server Rank & Progress vs Leader */}
+            {/* Bottom Section: Summary Grid OR Active Personal Leaderboard */}
+            {activeBreakdownMeta ? (
               <div
-                data-stat-card
-                className="rounded-2xl bg-[#11141A]/90 border border-white/[0.07] p-4 flex flex-col justify-between gap-3"
+                key={activeBreakdown}
+                className={`rounded-2xl bg-[#11141A]/95 border ${activeBreakdownMeta.borderClass} p-4 flex flex-col gap-3 animate-dropdown-in`}
               >
-                <div className="text-[11px] font-mono uppercase tracking-wider text-text-muted">
-                  {isIt ? 'Indice Attività vs Top Server' : 'Server Leaderboard Share'}
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-xs font-mono mb-1.5">
-                      <span className="text-text-secondary">
-                        {isIt ? 'Indice Overall' : 'Overall Score Index'}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <activeBreakdownMeta.icon
+                      className={`w-4 h-4 shrink-0 ${activeBreakdownMeta.accent}`}
+                    />
+                    <span className="text-xs font-mono uppercase tracking-wider text-text-primary truncate">
+                      {activeBreakdownMeta.title}
+                    </span>
+                    {activeBreakdownMeta.items.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/[0.06] border border-white/10 text-text-secondary shrink-0">
+                        Top {activeBreakdownMeta.items.length}
                       </span>
-                      <span
-                        ref={(el) => {
-                          counterRefs.current.carpetPct = el;
-                        }}
-                        className="text-accent-cyan font-semibold tabular-nums"
-                      >
-                        {serverSharePct}%
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
-                      <div
-                        data-stat-bar
-                        style={{ width: `${serverSharePct}%`, transformOrigin: 'left center' }}
-                        className="h-full rounded-full bg-gradient-to-r from-accent-cyan-deep to-accent-cyan-hover shadow-[0_0_12px_rgba(34,211,238,0.45)]"
-                      />
-                    </div>
+                    )}
                   </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-mono mb-1.5">
-                      <span className="text-text-secondary">
-                        {isIt ? 'Indice Scavo Blocchi' : 'Mining Volume Index'}
-                      </span>
-                      <span
-                        ref={(el) => {
-                          counterRefs.current.minedPct = el;
-                        }}
-                        className="text-sky-400 font-semibold tabular-nums"
-                      >
-                        {mineSharePct}%
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
-                      <div
-                        data-stat-bar
-                        style={{ width: `${mineSharePct}%`, transformOrigin: 'left center' }}
-                        className="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.4)]"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Top 3 Mined Blocks with Real 16x16 Minecraft Textures */}
-              <div
-                data-stat-card
-                className="rounded-2xl bg-[#11141A]/90 border border-white/[0.07] p-4 flex flex-col justify-between gap-2.5"
-              >
-                <div className="text-[11px] font-mono uppercase tracking-wider text-text-muted">
-                  {isIt ? 'Top 3 Blocchi Scavati' : 'Top 3 Mined Blocks'}
+                  <button
+                    type="button"
+                    onClick={() => setActiveBreakdown(null)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-text-secondary hover:text-white transition-colors cursor-pointer active:scale-[0.96]"
+                  >
+                    <ArrowLeft className="w-3 h-3" />
+                    <span>{isIt ? 'Riepilogo' : 'Summary'}</span>
+                  </button>
                 </div>
 
-                <div className="space-y-2.5">
-                  {topBlocks.slice(0, 3).map((block, bIdx) => {
-                    const pct = Math.max(12, Math.round((block.count / maxTopBlockCount) * 100));
-                    return (
-                      <div key={block.id} className="flex items-center gap-2.5">
-                        <BlockTextureIcon
-                          key={`${member.id}-${block.id}`}
-                          blockId={block.id}
-                          label={block.label}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between text-xs font-mono mb-1">
-                            <span className="text-text-primary truncate">{block.label}</span>
-                            <span
-                              ref={(el) => {
-                                counterRefs.current[`topBlock_${bIdx}`] = el;
-                              }}
-                              className="text-text-secondary tabular-nums ml-2"
-                            >
-                              {formatCompact(block.count)}
-                            </span>
-                          </div>
-                          <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                            <div
-                              data-stat-bar
-                              style={{ width: `${pct}%`, transformOrigin: 'left center' }}
-                              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-300"
+                {activeBreakdownMeta.items.length > 0 ? (
+                  <div className="max-h-56 overflow-y-auto pr-1 space-y-2">
+                    {activeBreakdownMeta.items.map((item, idx) => {
+                      const rankPos = idx + 1;
+                      const barPct = Math.max(
+                        8,
+                        Math.round((item.count / activeBreakdownMaxCount) * 100)
+                      );
+                      const sharePct =
+                        activeBreakdownMeta.total > 0
+                          ? Math.round((item.count / activeBreakdownMeta.total) * 1000) / 10
+                          : 0;
+                      return (
+                        <div key={`${item.id}-${idx}`} className="flex items-center gap-2.5">
+                          <span
+                            className={`w-7 text-center py-0.5 rounded-md text-[10px] font-mono font-semibold border shrink-0 tabular-nums ${getRankBadgeStyle(
+                              rankPos
+                            )}`}
+                          >
+                            #{rankPos}
+                          </span>
+                          {activeBreakdownMeta.kind === 'mob' ? (
+                            <MobTextureIcon
+                              key={`${member.id}-mob-${item.id}`}
+                              mobId={item.id}
+                              label={item.label}
                             />
+                          ) : (
+                            <BlockTextureIcon
+                              key={`${member.id}-blk-${item.id}`}
+                              blockId={item.id}
+                              label={item.label}
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 text-xs font-mono mb-1">
+                              <span className="text-text-primary truncate">{item.label}</span>
+                              <div className="flex items-center gap-2 shrink-0 tabular-nums">
+                                <span className="text-text-secondary">
+                                  {formatCompact(item.count)}
+                                </span>
+                                <span className="text-[10px] text-text-muted w-11 text-right">
+                                  {formatCompact(sharePct, 1)}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                              <div
+                                style={{ width: `${barPct}%` }}
+                                className={`h-full rounded-full ${activeBreakdownMeta.barClass}`}
+                              />
+                            </div>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] px-4 py-6 text-center text-xs font-mono text-text-secondary">
+                    {activeBreakdownMeta.total > 0
+                      ? isIt
+                        ? 'Classifica dettagliata pronta: aggiorna la mod server a v1.2.0 e le regole Firebase per popolare questa lista in automatico.'
+                        : 'Detailed breakdown ready: update the server mod to v1.2.0 and Firebase rules to populate this list automatically.'
+                      : isIt
+                        ? 'Nessun dato registrato per questa categoria.'
+                        : 'No recorded stats in this category yet.'}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Server Rank & Progress vs Leader */}
+                <div
+                  data-stat-card
+                  className="rounded-2xl bg-[#11141A]/90 border border-white/[0.07] p-4 flex flex-col justify-between gap-3"
+                >
+                  <div className="text-[11px] font-mono uppercase tracking-wider text-text-muted">
+                    {isIt ? 'Indice Attività vs Top Server' : 'Server Leaderboard Share'}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-xs font-mono mb-1.5">
+                        <span className="text-text-secondary">
+                          {isIt ? 'Indice Overall' : 'Overall Score Index'}
+                        </span>
+                        <span
+                          ref={(el) => {
+                            counterRefs.current.carpetPct = el;
+                          }}
+                          className="text-accent-cyan font-semibold tabular-nums"
+                        >
+                          {serverSharePct}%
+                        </span>
                       </div>
-                    );
-                  })}
+                      <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div
+                          data-stat-bar
+                          style={{ width: `${serverSharePct}%`, transformOrigin: 'left center' }}
+                          className="h-full rounded-full bg-gradient-to-r from-accent-cyan-deep to-accent-cyan-hover shadow-[0_0_12px_rgba(34,211,238,0.45)]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-mono mb-1.5">
+                        <span className="text-text-secondary">
+                          {isIt ? 'Indice Scavo Blocchi' : 'Mining Volume Index'}
+                        </span>
+                        <span
+                          ref={(el) => {
+                            counterRefs.current.minedPct = el;
+                          }}
+                          className="text-sky-400 font-semibold tabular-nums"
+                        >
+                          {mineSharePct}%
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div
+                          data-stat-bar
+                          style={{ width: `${mineSharePct}%`, transformOrigin: 'left center' }}
+                          className="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.4)]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top 3 Mined Blocks with Real 16x16 Minecraft Textures */}
+                <div
+                  data-stat-card
+                  className="rounded-2xl bg-[#11141A]/90 border border-white/[0.07] p-4 flex flex-col justify-between gap-2.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-text-muted">
+                      {isIt ? 'Top 3 Blocchi Scavati' : 'Top 3 Mined Blocks'}
+                    </span>
+                    {topBlocks.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveBreakdown('mined')}
+                        className="text-[11px] font-mono text-accent-cyan hover:text-accent-cyan-hover transition-colors cursor-pointer"
+                      >
+                        {isIt ? 'Vedi tutti →' : 'View all →'}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {topBlocks.slice(0, 3).map((block, bIdx) => {
+                      const pct = Math.max(12, Math.round((block.count / maxTopBlockCount) * 100));
+                      return (
+                        <div key={block.id} className="flex items-center gap-2.5">
+                          <BlockTextureIcon
+                            key={`${member.id}-${block.id}`}
+                            blockId={block.id}
+                            label={block.label}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between text-xs font-mono mb-1">
+                              <span className="text-text-primary truncate">{block.label}</span>
+                              <span
+                                ref={(el) => {
+                                  counterRefs.current[`topBlock_${bIdx}`] = el;
+                                }}
+                                className="text-text-secondary tabular-nums ml-2"
+                              >
+                                {formatCompact(block.count)}
+                              </span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                              <div
+                                data-stat-bar
+                                style={{ width: `${pct}%`, transformOrigin: 'left center' }}
+                                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-300"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

@@ -129,7 +129,7 @@ rules_version = '2';
 // Collection: server_status
 // Document ID: 'player_stats' (strictly enforced single live player statistics document)
 // Fields (publicly readable, no PII):
-//   - players: list<map> (required, max 120 items; inspected entries: {name: 1..40 string, uuid?: <=36 string, playTimeHours: 0..1000000 number, blocksMined: 0..2000000000 number, blocksPlaced: 0..2000000000 number, deaths: 0..100000000 number, mobKills: 0..2000000000 number, distanceKm: 0..100000000 number, carpetScore: 0..2000000000 number, topBlocks: list<map> (max 3 items; {id: 1..80 string, label: 1..80 string, count: 0..2000000000 number})})
+//   - players: list<map> (required, max 120 items; inspected entries: {name: 1..40 string, uuid?: <=36 string, playTimeHours: 0..1000000 number, blocksMined: 0..2000000000 number, blocksPlaced: 0..2000000000 number, deaths: 0..100000000 number, mobKills: 0..2000000000 number, distanceKm: 0..100000000 number, carpetScore: 0..2000000000 number, topBlocks: list<map> (required, max 10 items; {id: 1..80 string, label: 1..80 string, count: 0..2000000000 number}), topPlacedBlocks?: list<map> (optional, max 10 items; same entry schema), topKilledMobs?: list<map> (optional, max 10 items; same entry schema)})
 //   - updatedAtMs: number (required, > 0)
 //   - updatedAt: timestamp (optional)
 //
@@ -377,17 +377,17 @@ service cloud.firestore {
 
     function isValidTopBlocksList(blocks) {
       return blocks is list &&
-        blocks.size() <= 3 &&
+        blocks.size() <= 10 &&
         (blocks.size() < 1 || isValidTopBlockEntry(blocks[0])) &&
-        (blocks.size() < 2 || isValidTopBlockEntry(blocks[1])) &&
-        (blocks.size() < 3 || isValidTopBlockEntry(blocks[2]));
+        (blocks.size() < 2 || isValidTopBlockEntry(blocks[1]));
     }
 
     function isValidPlayerStatsEntry(p) {
       return p is map &&
         p.keys().hasOnly([
           'name', 'uuid', 'playTimeHours', 'blocksMined', 'blocksPlaced',
-          'deaths', 'mobKills', 'distanceKm', 'carpetScore', 'topBlocks'
+          'deaths', 'mobKills', 'distanceKm', 'carpetScore',
+          'topBlocks', 'topPlacedBlocks', 'topKilledMobs'
         ]) &&
         ('name' in p) && p.name is string && p.name.size() >= 1 && p.name.size() <= 40 &&
         (!('uuid' in p) || (p.uuid is string && p.uuid.size() <= 36)) &&
@@ -398,7 +398,9 @@ service cloud.firestore {
         ('mobKills' in p) && p.mobKills is number && p.mobKills >= 0 && p.mobKills <= 2000000000 &&
         ('distanceKm' in p) && p.distanceKm is number && p.distanceKm >= 0 && p.distanceKm <= 100000000 &&
         ('carpetScore' in p) && p.carpetScore is number && p.carpetScore >= 0 && p.carpetScore <= 2000000000 &&
-        ('topBlocks' in p) && isValidTopBlocksList(p.topBlocks);
+        ('topBlocks' in p) && isValidTopBlocksList(p.topBlocks) &&
+        (!('topPlacedBlocks' in p) || isValidTopBlocksList(p.topPlacedBlocks)) &&
+        (!('topKilledMobs' in p) || isValidTopBlocksList(p.topKilledMobs));
     }
 
     function isValidPlayerStatsList(players) {

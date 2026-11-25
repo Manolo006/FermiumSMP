@@ -23,7 +23,9 @@ public final class PlayerStatsModel {
 		long mobKills,
 		double distanceKm,
 		long carpetScore,
-		List<TopBlock> topBlocks
+		List<TopBlock> topBlocks,
+		List<TopBlock> topPlacedBlocks,
+		List<TopBlock> topKilledMobs
 	) {
 	}
 }

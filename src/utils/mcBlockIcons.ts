@@ -1,6 +1,9 @@
 export const MC_TEXTURES_BASE =
   'https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures';
 
+export const MC_TEXTURES_1215 =
+  'https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.5/assets/minecraft/textures';
+
 const WOOD_TYPES = new Set([
   'oak',
   'spruce',
@@ -184,4 +187,75 @@ export function getMinecraftBlockIconCandidates(rawBlockId: string): string[] {
   }
 
   return Array.from(paths, (path) => `${MC_TEXTURES_BASE}/${encodeURIComponent(path).replace(/%2F/g, '/')}.png`);
+}
+
+const MOB_ICON_OVERRIDES: Record<string, string> = {
+  player: 'item/diamond_sword',
+  giant: 'item/zombie_spawn_egg',
+  illusioner: 'item/evoker_spawn_egg',
+  wither_skull: 'item/wither_spawn_egg',
+};
+
+const MOB_DROP_FALLBACKS: Record<string, string> = {
+  zombified_piglin: 'gold_nugget',
+  zombie: 'rotten_flesh',
+  skeleton: 'bone',
+  creeper: 'gunpowder',
+  enderman: 'ender_pearl',
+  wither_skeleton: 'coal',
+  blaze: 'blaze_rod',
+  guardian: 'prismarine_shard',
+  elder_guardian: 'prismarine_shard',
+  witch: 'glowstone_dust',
+  pillager: 'emerald',
+  vindicator: 'emerald',
+  evoker: 'totem_of_undying',
+  slime: 'slime_ball',
+  magma_cube: 'magma_cream',
+  ghast: 'ghast_tear',
+  shulker: 'shulker_shell',
+  phantom: 'phantom_membrane',
+  spider: 'spider_eye',
+  cave_spider: 'spider_eye',
+  breeze: 'breeze_rod',
+  wither: 'nether_star',
+  ender_dragon: 'dragon_breath',
+  iron_golem: 'iron_ingot',
+  cow: 'beef',
+  pig: 'porkchop',
+  chicken: 'chicken',
+  sheep: 'mutton',
+  squid: 'ink_sac',
+  glow_squid: 'glow_ink_sac',
+};
+
+/**
+ * Returns an ordered, deduplicated list of candidate vanilla icon URLs for a
+ * Minecraft entity/mob ID using 1.21.5 custom spawn eggs and iconic drop fallbacks.
+ */
+export function getMinecraftMobIconCandidates(rawMobId: string): string[] {
+  const cleanId = rawMobId.trim().toLowerCase().replace(/^minecraft:/, '');
+  if (!cleanId) return [];
+
+  const urls = new Set<string>();
+  const add1215 = (relPath: string) => {
+    urls.add(`${MC_TEXTURES_1215}/${encodeURIComponent(relPath).replace(/%2F/g, '/')}.png`);
+  };
+  const add1214 = (relPath: string) => {
+    urls.add(`${MC_TEXTURES_BASE}/${encodeURIComponent(relPath).replace(/%2F/g, '/')}.png`);
+  };
+
+  const overridePath = MOB_ICON_OVERRIDES[cleanId];
+  if (overridePath) {
+    add1215(overridePath);
+  }
+  add1215(`item/${cleanId}_spawn_egg`);
+
+  const dropItem = MOB_DROP_FALLBACKS[cleanId];
+  if (dropItem) {
+    add1214(`item/${dropItem}`);
+    add1215(`item/${dropItem}`);
+  }
+
+  return Array.from(urls);
 }

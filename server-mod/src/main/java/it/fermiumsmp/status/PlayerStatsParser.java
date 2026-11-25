@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
  * matching {@code scripts/parseMinecraftStats.mjs} on the website.
  */
 public final class PlayerStatsParser {
+	private static final int MAX_TOP_ENTRIES = 10;
 	private static final Pattern NON_HEX_PATTERN = Pattern.compile("[^a-fA-F0-9]");
 	private static final Pattern MINECRAFT_PREFIX_PATTERN = Pattern.compile("^minecraft:", Pattern.CASE_INSENSITIVE);
 
@@ -148,6 +149,7 @@ public final class PlayerStatsParser {
 		JsonObject custom = getObjectOrNull(rootStats, "minecraft:custom");
 		JsonObject mined = getObjectOrNull(rootStats, "minecraft:mined");
 		JsonObject used = getObjectOrNull(rootStats, "minecraft:used");
+		JsonObject killed = getObjectOrNull(rootStats, "minecraft:killed");
 
 		double playTimeTicks = safeNonNegativeDouble(custom, "minecraft:play_time");
 		if (playTimeTicks == 0.0) {
@@ -155,34 +157,14 @@ public final class PlayerStatsParser {
 		}
 		double playTimeHours = round1(playTimeTicks / 20.0 / 3600.0);
 
-		long blocksMined = 0L;
 		List<PlayerStatsModel.TopBlock> minedEntries = new ArrayList<>();
-		if (mined != null) {
-			for (Map.Entry<String, JsonElement> entry : mined.entrySet()) {
-				long count = Math.round(safeNonNegativeDouble(entry.getValue()));
-				if (count > 0L) {
-					blocksMined += count;
-					String id = stripNamespace(entry.getKey());
-					if (!id.isEmpty()) {
-						minedEntries.add(new PlayerStatsModel.TopBlock(
-							id,
-							formatBlockLabel(entry.getKey()),
-							count
-						));
-					}
-				}
-			}
-		}
+		long blocksMined = sumAndCollectEntries(mined, false, minedEntries);
 
-		long blocksPlaced = 0L;
-		if (used != null) {
-			for (Map.Entry<String, JsonElement> entry : used.entrySet()) {
-				if (isExcludedUsedItem(entry.getKey())) {
-					continue;
-				}
-				blocksPlaced += Math.round(safeNonNegativeDouble(entry.getValue()));
-			}
-		}
+		List<PlayerStatsModel.TopBlock> placedEntries = new ArrayList<>();
+		long blocksPlaced = sumAndCollectEntries(used, true, placedEntries);
+
+		List<PlayerStatsModel.TopBlock> killedEntries = new ArrayList<>();
+		sumAndCollectEntries(killed, false, killedEntries);
 
 		long deaths = Math.round(safeNonNegativeDouble(custom, "minecraft:deaths"));
 		long mobKills = Math.round(safeNonNegativeDouble(custom, "minecraft:mob_kills"));
@@ -197,14 +179,9 @@ public final class PlayerStatsParser {
 		}
 		double distanceKm = round1(distanceCm / 100_000.0);
 
-		minedEntries.sort(
-			Comparator.comparingLong(PlayerStatsModel.TopBlock::count)
-				.reversed()
-				.thenComparing(PlayerStatsModel.TopBlock::id)
-		);
-		List<PlayerStatsModel.TopBlock> topBlocks = minedEntries.size() <= 3
-			? List.copyOf(minedEntries)
-			: List.copyOf(minedEntries.subList(0, 3));
+		List<PlayerStatsModel.TopBlock> topBlocks = rankTopEntries(minedEntries);
+		List<PlayerStatsModel.TopBlock> topPlacedBlocks = rankTopEntries(placedEntries);
+		List<PlayerStatsModel.TopBlock> topKilledMobs = rankTopEntries(killedEntries);
 
 		String cleanUuid = normalizeUuid(uuid);
 		String safeName = (name != null && !name.isBlank())
@@ -221,8 +198,51 @@ public final class PlayerStatsParser {
 			mobKills,
 			distanceKm,
 			blocksMined + blocksPlaced,
-			topBlocks
+			topBlocks,
+			topPlacedBlocks,
+			topKilledMobs
 		);
+	}
+
+	private static long sumAndCollectEntries(
+		JsonObject source,
+		boolean excludeNonBlockUsedItems,
+		List<PlayerStatsModel.TopBlock> out
+	) {
+		long total = 0L;
+		if (source == null) {
+			return total;
+		}
+		for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
+			if (excludeNonBlockUsedItems && isExcludedUsedItem(entry.getKey())) {
+				continue;
+			}
+			long count = Math.round(safeNonNegativeDouble(entry.getValue()));
+			if (count <= 0L) {
+				continue;
+			}
+			total += count;
+			String id = stripNamespace(entry.getKey());
+			if (!id.isEmpty()) {
+				out.add(new PlayerStatsModel.TopBlock(
+					id,
+					formatBlockLabel(entry.getKey()),
+					count
+				));
+			}
+		}
+		return total;
+	}
+
+	private static List<PlayerStatsModel.TopBlock> rankTopEntries(List<PlayerStatsModel.TopBlock> entries) {
+		entries.sort(
+			Comparator.comparingLong(PlayerStatsModel.TopBlock::count)
+				.reversed()
+				.thenComparing(PlayerStatsModel.TopBlock::id)
+		);
+		return entries.size() <= MAX_TOP_ENTRIES
+			? List.copyOf(entries)
+			: List.copyOf(entries.subList(0, MAX_TOP_ENTRIES));
 	}
 
 	static boolean isExcludedUsedItem(String rawId) {

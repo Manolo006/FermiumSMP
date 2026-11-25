@@ -14,6 +14,8 @@ export interface MemberStatTopBlock {
   count: number;
 }
 
+export type MemberStatBreakdownItem = MemberStatTopBlock;
+
 export interface MemberStats {
   name: string;
   uuid?: string;
@@ -25,6 +27,8 @@ export interface MemberStats {
   distanceKm: number;
   carpetScore: number;
   topBlocks: MemberStatTopBlock[];
+  topPlacedBlocks?: MemberStatTopBlock[];
+  topKilledMobs?: MemberStatBreakdownItem[];
 }
 
 export interface StreamerCreator {

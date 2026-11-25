@@ -16,7 +16,7 @@ public final class FirestorePayloadBuilder {
 	private static final int MAX_PLAYERS_LIST = 60;
 	private static final int MAX_HISTORY_LIST = 60;
 	private static final int MAX_STATS_PLAYERS = 120;
-	private static final int MAX_TOP_BLOCKS = 3;
+	private static final int MAX_TOP_BLOCKS = 10;
 	private static final long MAX_UPTIME_SECONDS = 315_360_000L;
 	private static final double MAX_MEMORY_MB = 1_048_576.0;
 	private static final Pattern SECTION_CODE_PATTERN = Pattern.compile("\\u00A7.");
@@ -156,6 +156,8 @@ public final class FirestorePayloadBuilder {
 			pFields.add("distanceKm", doubleField(round1(clampDouble(entry.distanceKm(), 0.0, 100_000_000.0))));
 			pFields.add("carpetScore", intField(clampLong(entry.carpetScore(), 0L, 4_000_000_000L)));
 			pFields.add("topBlocks", buildTopBlocksArray(entry.topBlocks()));
+			pFields.add("topPlacedBlocks", buildTopBlocksArray(entry.topPlacedBlocks()));
+			pFields.add("topKilledMobs", buildTopBlocksArray(entry.topKilledMobs()));
 			values.add(wrapMap(pFields));
 		}
 		return wrapArray(values);

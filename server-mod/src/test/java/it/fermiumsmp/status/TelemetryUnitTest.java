@@ -168,6 +168,11 @@ class TelemetryUnitTest {
 			      "minecraft:cooked_beef": 300,
 			      "minecraft:firework_rocket": 120,
 			      "minecraft:golden_carrot": 80
+			    },
+			    "minecraft:killed": {
+			      "minecraft:zombified_piglin": 300,
+			      "minecraft:enderman": 100,
+			      "minecraft:zombie": 20
 			    }
 			  }
 			}
@@ -188,10 +193,17 @@ class TelemetryUnitTest {
 		assertEquals(3L, entry.deaths());
 		assertEquals(420L, entry.mobKills());
 		assertEquals(2.0, entry.distanceKm());
-		assertEquals(3, entry.topBlocks().size());
+		assertEquals(4, entry.topBlocks().size());
 		assertEquals("deepslate", entry.topBlocks().get(0).id());
 		assertEquals("Deepslate", entry.topBlocks().get(0).label());
 		assertEquals(2000L, entry.topBlocks().get(0).count());
+		assertEquals(2, entry.topPlacedBlocks().size());
+		assertEquals("stone_bricks", entry.topPlacedBlocks().get(0).id());
+		assertEquals(600L, entry.topPlacedBlocks().get(0).count());
+		assertEquals(3, entry.topKilledMobs().size());
+		assertEquals("zombified_piglin", entry.topKilledMobs().get(0).id());
+		assertEquals("Zombified Piglin", entry.topKilledMobs().get(0).label());
+		assertEquals(300L, entry.topKilledMobs().get(0).count());
 		assertTrue(PlayerStatsParser.isOfflineBotUuid("11111111-1111-3111-8111-111111111111"));
 		assertFalse(PlayerStatsParser.isOfflineBotUuid("01c530a3-5f97-448f-a25d-5cdd01c65715"));
 	}
@@ -239,12 +251,14 @@ class TelemetryUnitTest {
 
 	@Test
 	void firestorePlayerStatsPayloadMatchesRulesSchemaAndCaps() {
-		List<PlayerStatsModel.TopBlock> manyBlocks = List.of(
-			new PlayerStatsModel.TopBlock("deepslate", "Deepslate", 500),
-			new PlayerStatsModel.TopBlock("stone", "Stone", 300),
-			new PlayerStatsModel.TopBlock("netherrack", "Netherrack", 200),
-			new PlayerStatsModel.TopBlock("dirt", "Dirt", 10)
-		);
+		List<PlayerStatsModel.TopBlock> manyBlocks = new ArrayList<>();
+		List<PlayerStatsModel.TopBlock> manyPlaced = new ArrayList<>();
+		List<PlayerStatsModel.TopBlock> manyMobs = new ArrayList<>();
+		for (int i = 0; i < 12; i++) {
+			manyBlocks.add(new PlayerStatsModel.TopBlock("stone_" + i, "Stone " + i, 500 - i * 10));
+			manyPlaced.add(new PlayerStatsModel.TopBlock("piston_" + i, "Piston " + i, 400 - i * 10));
+			manyMobs.add(new PlayerStatsModel.TopBlock("zombie_" + i, "Zombie " + i, 300 - i * 10));
+		}
 
 		List<PlayerStatsModel.PlayerStatsEntry> manyPlayers = new ArrayList<>();
 		for (int i = 0; i < 140; i++) {
@@ -258,7 +272,9 @@ class TelemetryUnitTest {
 				50,
 				19.87,
 				1200 + i,
-				manyBlocks
+				manyBlocks,
+				manyPlaced,
+				manyMobs
 			));
 		}
 
@@ -275,7 +291,8 @@ class TelemetryUnitTest {
 		JsonObject p0 = pArr.get(0).getAsJsonObject().getAsJsonObject("mapValue").getAsJsonObject("fields");
 		Set<String> allowedEntryKeys = Set.of(
 			"name", "uuid", "playTimeHours", "blocksMined", "blocksPlaced",
-			"deaths", "mobKills", "distanceKm", "carpetScore", "topBlocks"
+			"deaths", "mobKills", "distanceKm", "carpetScore",
+			"topBlocks", "topPlacedBlocks", "topKilledMobs"
 		);
 		assertEquals(allowedEntryKeys, p0.keySet());
 		assertTrue(p0.getAsJsonObject("name").get("stringValue").getAsString().length() <= 40);
@@ -288,10 +305,12 @@ class TelemetryUnitTest {
 		assertTrue(p0.getAsJsonObject("mobKills").has("integerValue"));
 		assertTrue(p0.getAsJsonObject("carpetScore").has("integerValue"));
 
-		JsonArray bArr = p0.getAsJsonObject("topBlocks").getAsJsonObject("arrayValue").getAsJsonArray("values");
-		assertEquals(3, bArr.size());
-		JsonObject b0 = bArr.get(0).getAsJsonObject().getAsJsonObject("mapValue").getAsJsonObject("fields");
-		assertEquals(Set.of("id", "label", "count"), b0.keySet());
-		assertTrue(b0.getAsJsonObject("count").has("integerValue"));
+		for (String arrKey : List.of("topBlocks", "topPlacedBlocks", "topKilledMobs")) {
+			JsonArray arr = p0.getAsJsonObject(arrKey).getAsJsonObject("arrayValue").getAsJsonArray("values");
+			assertEquals(10, arr.size(), "Expected max 10 items in " + arrKey);
+			JsonObject item0 = arr.get(0).getAsJsonObject().getAsJsonObject("mapValue").getAsJsonObject("fields");
+			assertEquals(Set.of("id", "label", "count"), item0.keySet());
+			assertTrue(item0.getAsJsonObject("count").has("integerValue"));
+		}
 	}
 }

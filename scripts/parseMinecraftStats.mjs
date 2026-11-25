@@ -180,6 +180,37 @@ function safeNonNegativeNumber(val) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+const MAX_TOP_ENTRIES = 10;
+
+function sumAndCollectEntries(source, excludeNonBlockUsedItems = false) {
+  let total = 0;
+  const entries = [];
+  if (!source || typeof source !== 'object') {
+    return { total, entries };
+  }
+  for (const [key, rawCount] of Object.entries(source)) {
+    if (excludeNonBlockUsedItems && isExcludedUsedItem(key)) continue;
+    const count = Math.round(safeNonNegativeNumber(rawCount));
+    if (count <= 0) continue;
+    total += count;
+    const id = String(key).replace(/^minecraft:/i, '').trim();
+    if (id) {
+      entries.push({
+        id,
+        label: formatBlockLabel(key),
+        count,
+      });
+    }
+  }
+  return { total, entries };
+}
+
+function rankTopEntries(entries, maxItems = MAX_TOP_ENTRIES) {
+  return [...entries]
+    .sort((a, b) => b.count - a.count || a.id.localeCompare(b.id))
+    .slice(0, maxItems);
+}
+
 /**
  * Extracts normalized MemberStats from a Minecraft `world/stats/<uuid>.json` object.
  * @param {{ name: string; uuid?: string; rawStats: any }} params
@@ -202,31 +233,19 @@ export function parsePlayerStatsJson({ name, uuid, rawStats }) {
     rootStats['minecraft:used'] && typeof rootStats['minecraft:used'] === 'object'
       ? rootStats['minecraft:used']
       : {};
+  const killed =
+    rootStats['minecraft:killed'] && typeof rootStats['minecraft:killed'] === 'object'
+      ? rootStats['minecraft:killed']
+      : {};
 
   const playTimeTicks = safeNonNegativeNumber(
     custom['minecraft:play_time'] ?? custom['minecraft:play_one_minute'] ?? 0
   );
   const playTimeHours = Math.round((playTimeTicks / 20 / 3600) * 10) / 10;
 
-  let blocksMined = 0;
-  const minedEntries = [];
-  for (const [key, rawCount] of Object.entries(mined)) {
-    const count = Math.round(safeNonNegativeNumber(rawCount));
-    if (count > 0) {
-      blocksMined += count;
-      minedEntries.push({
-        id: String(key).replace(/^minecraft:/i, ''),
-        label: formatBlockLabel(key),
-        count,
-      });
-    }
-  }
-
-  let blocksPlaced = 0;
-  for (const [key, rawCount] of Object.entries(used)) {
-    if (isExcludedUsedItem(key)) continue;
-    blocksPlaced += Math.round(safeNonNegativeNumber(rawCount));
-  }
+  const { total: blocksMined, entries: minedEntries } = sumAndCollectEntries(mined, false);
+  const { total: blocksPlaced, entries: placedEntries } = sumAndCollectEntries(used, true);
+  const { entries: killedEntries } = sumAndCollectEntries(killed, false);
 
   const deaths = Math.round(safeNonNegativeNumber(custom['minecraft:deaths'] ?? 0));
   const mobKills = Math.round(safeNonNegativeNumber(custom['minecraft:mob_kills'] ?? 0));
@@ -239,7 +258,9 @@ export function parsePlayerStatsJson({ name, uuid, rawStats }) {
   }
   const distanceKm = Math.round((distanceCm / 100000) * 10) / 10;
 
-  const topBlocks = minedEntries.sort((a, b) => b.count - a.count).slice(0, 3);
+  const topBlocks = rankTopEntries(minedEntries);
+  const topPlacedBlocks = rankTopEntries(placedEntries);
+  const topKilledMobs = rankTopEntries(killedEntries);
   const cleanUuid = normalizeUuid(uuid);
 
   return {
@@ -253,5 +274,7 @@ export function parsePlayerStatsJson({ name, uuid, rawStats }) {
     distanceKm,
     carpetScore: blocksMined + blocksPlaced,
     topBlocks,
+    topPlacedBlocks,
+    topKilledMobs,
   };
 }
