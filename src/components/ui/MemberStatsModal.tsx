@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import {
   Award,
@@ -19,6 +19,7 @@ import type { Member, MemberRoleGroup, MemberStats } from '../../types';
 import type { MemberCardOriginRects } from './MemberCard';
 import { getMemberSkinUrls } from '../../data/members';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { getMinecraftBlockIconCandidates } from '../../utils/mcBlockIcons';
 
 interface MemberStatsModalProps {
   member: Member | null;
@@ -34,8 +35,41 @@ interface MemberStatsModalProps {
   onNext: () => void;
 }
 
-const MC_BLOCK_ICON_BASE =
-  'https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures/block';
+const BlockTextureIcon: React.FC<{ blockId: string; label: string }> = ({
+  blockId,
+  label,
+}) => {
+  const candidates = useMemo(() => getMinecraftBlockIconCandidates(blockId), [blockId]);
+  const [candidateIdx, setCandidateIdx] = useState(0);
+
+  useEffect(() => {
+    setCandidateIdx(0);
+  }, [blockId]);
+
+  const src = candidates[candidateIdx];
+  if (!src) {
+    return (
+      <div
+        data-block-icon
+        aria-label={label}
+        className="w-6 h-6 rounded border border-white/10 bg-[#181C24] flex items-center justify-center shrink-0"
+      >
+        <Box className="w-3.5 h-3.5 text-text-muted" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      data-block-icon
+      src={src}
+      alt={label}
+      onError={() => setCandidateIdx((prev) => prev + 1)}
+      style={{ imageRendering: 'pixelated' }}
+      className="w-6 h-6 rounded border border-white/10 bg-[#181C24] shrink-0 object-contain"
+    />
+  );
+};
 
 const ROLE_THEME: Record<
   MemberRoleGroup,
@@ -1060,15 +1094,12 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
                 <div className="space-y-2.5">
                   {topBlocks.slice(0, 3).map((block, bIdx) => {
                     const pct = Math.max(12, Math.round((block.count / maxTopBlockCount) * 100));
-                    const cleanId = block.id.replace('minecraft:', '');
                     return (
                       <div key={block.id} className="flex items-center gap-2.5">
-                        <img
-                          data-block-icon
-                          src={`${MC_BLOCK_ICON_BASE}/${encodeURIComponent(cleanId)}.png`}
-                          alt={block.label}
-                          style={{ imageRendering: 'pixelated' }}
-                          className="w-6 h-6 rounded border border-white/10 bg-[#181C24] shrink-0"
+                        <BlockTextureIcon
+                          key={`${member.id}-${block.id}`}
+                          blockId={block.id}
+                          label={block.label}
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between text-xs font-mono mb-1">
