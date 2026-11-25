@@ -26,6 +26,7 @@ interface MemberStatsModalProps {
   originMetrics?: MemberCardOriginRects | null;
   rank: number;
   totalMembers: number;
+  overallSharePct?: number;
   maxCarpetScore: number;
   maxBlocksMined: number;
   onClose: () => void;
@@ -120,6 +121,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
   originMetrics,
   rank,
   totalMembers,
+  overallSharePct,
   maxCarpetScore,
   maxBlocksMined,
   onClose,
@@ -332,7 +334,11 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
     const safeMined = stats.blocksMined ?? 0;
     const topBlocks = Array.isArray(stats.topBlocks) ? stats.topBlocks : [];
     const serverSharePct =
-      maxCarpetScore > 0 ? Math.min(100, Math.round((safeCarpet / maxCarpetScore) * 100)) : 100;
+      typeof overallSharePct === 'number'
+        ? Math.max(0, Math.min(100, Math.round(overallSharePct)))
+        : maxCarpetScore > 0
+          ? Math.min(100, Math.round((safeCarpet / maxCarpetScore) * 100))
+          : 100;
     const mineSharePct =
       maxBlocksMined > 0 ? Math.min(100, Math.round((safeMined / maxBlocksMined) * 100)) : 100;
 
@@ -646,7 +652,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
     }, rootRef);
 
     return () => ctx.revert();
-  }, [member?.id, stats, originMetrics, maxCarpetScore, maxBlocksMined]);
+  }, [member?.id, stats, originMetrics, overallSharePct, maxCarpetScore, maxBlocksMined]);
 
   const toggleSkinPose = () => {
     setSkinMode((p) => (p === 'bust' ? 'full' : 'bust'));
@@ -682,7 +688,11 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
   const safeMined = stats.blocksMined ?? 0;
   const topBlocks = Array.isArray(stats.topBlocks) ? stats.topBlocks : [];
   const serverSharePct =
-    maxCarpetScore > 0 ? Math.min(100, Math.round((safeCarpet / maxCarpetScore) * 100)) : 100;
+    typeof overallSharePct === 'number'
+      ? Math.max(0, Math.min(100, Math.round(overallSharePct)))
+      : maxCarpetScore > 0
+        ? Math.min(100, Math.round((safeCarpet / maxCarpetScore) * 100))
+        : 100;
   const mineSharePct =
     maxBlocksMined > 0 ? Math.min(100, Math.round((safeMined / maxBlocksMined) * 100)) : 100;
   const maxTopBlockCount = topBlocks.reduce((acc, b) => Math.max(acc, b.count), 1);
@@ -993,7 +1003,7 @@ export const MemberStatsModal: React.FC<MemberStatsModalProps> = ({
                   <div>
                     <div className="flex justify-between text-xs font-mono mb-1.5">
                       <span className="text-text-secondary">
-                        {isIt ? 'Indice Carpet Score' : 'Carpet Score Index'}
+                        {isIt ? 'Indice Overall' : 'Overall Score Index'}
                       </span>
                       <span
                         ref={(el) => {

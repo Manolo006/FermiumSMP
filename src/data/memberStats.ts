@@ -140,3 +140,135 @@ export function buildFallbackStatsForName(name: string): MemberStats {
     ],
   };
 }
+
+export interface MemberOverallRanking {
+  overallScore: number;
+  overallSharePct: number;
+  rank: number;
+}
+
+export interface OverallRankingsResult {
+  byMemberId: Map<string, MemberOverallRanking>;
+  maxOverallScore: number;
+  maxCarpetScore: number;
+  maxBlocksMined: number;
+}
+
+export const OVERALL_SCORE_WEIGHTS = {
+  blocksMined: 0.24,
+  playTimeHours: 0.24,
+  blocksPlaced: 0.2,
+  distanceKm: 0.12,
+  mobKills: 0.12,
+  survival: 0.08,
+} as const;
+
+function nonNegative(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function sqrtNorm(value: number, maxValue: number): number {
+  return maxValue > 0 && value > 0 ? Math.sqrt(value / maxValue) : 0;
+}
+
+/**
+ * Computes a weighted overall leaderboard across all 6 member metrics using
+ * square-root normalization so single-stat outliers do not flatten other rankings.
+ */
+export function computeMemberOverallRankings(
+  entries: Array<{ id: string; stats: MemberStats }>
+): OverallRankingsResult {
+  if (entries.length === 0) {
+    return {
+      byMemberId: new Map(),
+      maxOverallScore: 1,
+      maxCarpetScore: 1,
+      maxBlocksMined: 1,
+    };
+  }
+
+  let maxMined = 0;
+  let maxPlaced = 0;
+  let maxHours = 0;
+  let maxDistance = 0;
+  let maxMobKills = 0;
+  let maxSurvival = 0;
+  let maxCarpetScore = 1;
+  let maxBlocksMined = 1;
+
+  const prepared = entries.map(({ id, stats }) => {
+    const blocksMined = nonNegative(stats.blocksMined);
+    const blocksPlaced = nonNegative(stats.blocksPlaced);
+    const playTimeHours = nonNegative(stats.playTimeHours);
+    const distanceKm = nonNegative(stats.distanceKm);
+    const mobKills = nonNegative(stats.mobKills);
+    const deaths = nonNegative(stats.deaths);
+    const carpetScore = nonNegative(stats.carpetScore);
+    const survival = playTimeHours / (deaths + 1);
+
+    if (blocksMined > maxMined) maxMined = blocksMined;
+    if (blocksPlaced > maxPlaced) maxPlaced = blocksPlaced;
+    if (playTimeHours > maxHours) maxHours = playTimeHours;
+    if (distanceKm > maxDistance) maxDistance = distanceKm;
+    if (mobKills > maxMobKills) maxMobKills = mobKills;
+    if (survival > maxSurvival) maxSurvival = survival;
+    if (carpetScore > maxCarpetScore) maxCarpetScore = carpetScore;
+    if (blocksMined > maxBlocksMined) maxBlocksMined = blocksMined;
+
+    return {
+      id,
+      blocksMined,
+      blocksPlaced,
+      playTimeHours,
+      distanceKm,
+      mobKills,
+      carpetScore,
+      survival,
+    };
+  });
+
+  const scored = prepared
+    .map((item) => {
+      const rawScore =
+        OVERALL_SCORE_WEIGHTS.blocksMined * sqrtNorm(item.blocksMined, maxMined) +
+        OVERALL_SCORE_WEIGHTS.playTimeHours * sqrtNorm(item.playTimeHours, maxHours) +
+        OVERALL_SCORE_WEIGHTS.blocksPlaced * sqrtNorm(item.blocksPlaced, maxPlaced) +
+        OVERALL_SCORE_WEIGHTS.distanceKm * sqrtNorm(item.distanceKm, maxDistance) +
+        OVERALL_SCORE_WEIGHTS.mobKills * sqrtNorm(item.mobKills, maxMobKills) +
+        OVERALL_SCORE_WEIGHTS.survival * sqrtNorm(item.survival, maxSurvival);
+
+      return {
+        ...item,
+        rawScore,
+        overallScore: Math.round(rawScore * 1000) / 10,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.rawScore - a.rawScore ||
+        b.carpetScore - a.carpetScore ||
+        b.playTimeHours - a.playTimeHours ||
+        b.blocksMined - a.blocksMined
+    );
+
+  const maxRaw = scored[0]?.rawScore ?? 0;
+  const maxOverallScore = maxRaw > 0 ? Math.round(maxRaw * 1000) / 10 : 1;
+
+  const byMemberId = new Map<string, MemberOverallRanking>();
+  scored.forEach((entry, idx) => {
+    const overallSharePct =
+      maxRaw > 0 ? Math.min(100, Math.round((entry.rawScore / maxRaw) * 100)) : 0;
+    byMemberId.set(entry.id, {
+      overallScore: entry.overallScore,
+      overallSharePct,
+      rank: idx + 1,
+    });
+  });
+
+  return {
+    byMemberId,
+    maxOverallScore,
+    maxCarpetScore,
+    maxBlocksMined,
+  };
+}

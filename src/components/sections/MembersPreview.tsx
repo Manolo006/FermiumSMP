@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { BarChart3, Search, UserPlus, X } from 'lucide-react';
 import type { Member, MemberRoleGroup, MemberStats } from '../../types';
-import { buildFallbackStatsForName } from '../../data/memberStats';
+import {
+  buildFallbackStatsForName,
+  computeMemberOverallRankings,
+} from '../../data/memberStats';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useSiteContent } from '../../context/SiteContentContext';
@@ -67,28 +70,14 @@ export const MembersPreview: React.FC = () => {
     });
   }, [members, statsByUuid, statsByName]);
 
-  const { maxCarpetScore, maxBlocksMined, rankByMemberId } = useMemo(() => {
-    let maxCarpet = 1;
-    let maxMined = 1;
-    for (const st of memberMetrics) {
-      if (st.carpetScore > maxCarpet) maxCarpet = st.carpetScore;
-      if (st.blocksMined > maxMined) maxMined = st.blocksMined;
-    }
-    const sorted = members
-      .map((m, idx) => ({ id: m.id, stats: memberMetrics[idx] }))
-      .sort(
-        (a, b) =>
-          b.stats.carpetScore - a.stats.carpetScore ||
-          b.stats.blocksMined - a.stats.blocksMined ||
-          b.stats.playTimeHours - a.stats.playTimeHours
-      );
-    const rankMap = new Map<string, number>();
-    sorted.forEach((entry, idx) => rankMap.set(entry.id, idx + 1));
-    return {
-      maxCarpetScore: maxCarpet,
-      maxBlocksMined: maxMined,
-      rankByMemberId: rankMap,
-    };
+  const {
+    byMemberId: overallByMemberId,
+    maxCarpetScore,
+    maxBlocksMined,
+  } = useMemo(() => {
+    return computeMemberOverallRankings(
+      members.map((m, idx) => ({ id: m.id, stats: memberMetrics[idx] }))
+    );
   }, [members, memberMetrics]);
 
   // Role counts
@@ -118,9 +107,11 @@ export const MembersPreview: React.FC = () => {
 
   const selectedMember = selectedGlobalIdx !== null ? members[selectedGlobalIdx] ?? null : null;
   const selectedStats = selectedGlobalIdx !== null ? memberMetrics[selectedGlobalIdx] ?? null : null;
-  const selectedRank = selectedMember
-    ? rankByMemberId.get(selectedMember.id) ?? 1
-    : 1;
+  const selectedRanking = selectedMember
+    ? overallByMemberId.get(selectedMember.id)
+    : undefined;
+  const selectedRank = selectedRanking?.rank ?? 1;
+  const selectedOverallSharePct = selectedRanking?.overallSharePct;
 
   const filterOrder: MemberRoleFilter[] = ['all', 'owner', 'member', 'trial'];
 
@@ -254,7 +245,7 @@ export const MembersPreview: React.FC = () => {
               <MemberCard
                 key={member.id}
                 member={member}
-                rank={rankByMemberId.get(member.id)}
+                rank={overallByMemberId.get(member.id)?.rank}
                 totalMembers={members.length}
                 isHidden={selectedMember?.id === member.id}
                 isAdmin={isAdmin}
@@ -293,6 +284,7 @@ export const MembersPreview: React.FC = () => {
         originMetrics={originMetrics}
         rank={selectedRank}
         totalMembers={members.length}
+        overallSharePct={selectedOverallSharePct}
         maxCarpetScore={maxCarpetScore}
         maxBlocksMined={maxBlocksMined}
         onClose={() => {
